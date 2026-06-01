@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  password   String
+  isVerified Boolean @default(false)
+
+  verificationCode          String?
+  verificationCodeExpiresAt DateTime?
+
+  therapist Therapist?
+}
+
+model Therapist {
+  id        Int    @id @default(autoincrement())
+  firstName String
+  lastName  String
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+
+  phone     String?
+  gender    String?
+  birthDate DateTime?
+
+  locations TherapistLocation[]
+  services  Service[]
+
+  clients  Client[]
+  settings TherapistSettings?
+}
+
+model TherapistLocation {
+  id          Int       @id @default(autoincrement())
+  therapistId Int
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+
+  name    String
+  country String
+  city    String
+  address String
+}
+
+model Service {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  therapistId Int
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+}
+
+model Client {
+  id    Int     @id @default(autoincrement())
+  name  String
+  email String?
+  phone String?
+  notes String?
+
+  country String?
+  city    String?
+
+  reminderMinutesBefore Int?
+  reminderOffsets       String?
+
+  therapistId Int
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+
+  appointments      Appointment[]
+  pushSubscriptions PushSubscription[]
+}
+
+model Appointment {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+
+  clientId    Int
+  therapistId Int // 👈 добавяш това
+
+  status        String  @default("scheduled")
+  notes         String?
+  remindersSent String?
+
+  notesRelation Note[]
+  messages      Message[]
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  seriesId      Int?
+  series        RecurringSeries? @relation(fields: [seriesId], references: [id])
+
+  originalDate  DateTime?
+  isException   Boolean @default(false)
+  isCancelled   Boolean @default(false)
+}
+
+model Note {
+  id      Int    @id @default(autoincrement())
+  content String
+
+  appointmentId Int // ✅ важно
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id Int @id @default(autoincrement())
+
+  therapistId Int
+  clientId    Int
+
+  appointmentId Int?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  type    String // reminder | manual | broadcast
+  content String?
+
+  sendAt DateTime
+  sentAt DateTime?
+  status String // pending | sent | failed
+
+  createdAt DateTime @default(now())
+
+  @@index([sendAt, status])
+  @@index([type])
+}
+
+model TherapistSettings {
+  id          Int @id @default(autoincrement())
+  therapistId Int @unique
+
+  reminderOffsets String // JSON: "[10080,1440,60]"
+  retentionMonths Int    @default(12)
+
+  therapist Therapist @relation(fields: [therapistId], references: [id])
+}
+
+model PushSubscription {
+  id       Int @id @default(autoincrement())
+  clientId Int
+
+  endpoint String
+  p256dh   String
+  auth     String
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@unique([endpoint])
+}
+
+model RecurringSeries {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  therapistId Int
+
+  startTime   DateTime
+  endTime     DateTime
+
+  frequency   String
+  interval    Int
+  daysOfWeek  String
+
+  until       DateTime?
+
+  createdAt   DateTime @default(now())
+
+  appointments Appointment[]
+}

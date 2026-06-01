@@ -1,0 +1,11 @@
+// {
+//     "js/ts.tsdk.path": "node_modules\\typescript\\lib"
+// }
+
+{
+  "files.associations": {
+    "*.ts": "typescript",
+    "*.tsx": "typescriptreact"
+  },
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
+}

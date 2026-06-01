@@ -1,0 +1,15 @@
+
+> backend@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m19:16:59 ч.[0m] Starting compilation in watch mode...
+
+[[90m19:17:04 ч.[0m] Found 0 errors. Watching for file changes.
+
+undefined
+[32m[Nest] 440  - [39m23.03.2026 г., 19:17:06 ч. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 440  - [39m23.03.2026 г., 19:17:06 ч. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +31ms[39m
+[32m[Nest] 440  - [39m23.03.2026 г., 19:17:06 ч. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 440  - [39m23.03.2026 г., 19:17:06 ч. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 440  - [39m23.03.2026 г., 19:17:06 ч. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +7ms[39m
+Terminate batch job (Y/N)? 
