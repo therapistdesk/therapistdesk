@@ -36,7 +36,7 @@ export class AppointmentsController {
     @Req() req,
     @Body() dto: CreateAppointmentDto,
   ) {
-    return this.service.update(Number(id), dto, req.user.userId);
+    return this.service.update(Number(id), dto);
   }
 
   @Patch(':id/status')

@@ -99,7 +99,7 @@ export class MessagesService {
           ? `${therapist.firstName} ${therapist.lastName}`
           : 'Вашият терапевт';
 
-        const clientName = appointment.client?.firstName || '';
+        const clientName = appointment.client?.name || '';
 
         // 🔥 ЕДИНЕН PAYLOAD
         const payload = {
