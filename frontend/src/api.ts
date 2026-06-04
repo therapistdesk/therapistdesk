@@ -28,10 +28,7 @@ api.interceptors.response.use(
       try {
         const refresh_token = localStorage.getItem('refresh_token');
 
-        const res = await axios.post(
-          'http://localhost:3000/therapists/refresh',
-          { refresh_token }
-        );
+        await api.post('/therapists/refresh', { refresh_token });
 
         const newAccessToken = res.data.access_token;
 
