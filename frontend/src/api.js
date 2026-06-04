@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const API_URL = "https://therapistdesk.onrender.com";
 
 // ---------------- AUTH ----------------
@@ -124,3 +126,9 @@ export async function deleteAppointment(token, id) {
     },
   });
 }
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+
+export default api;

@@ -136,14 +136,13 @@ export default function RegisterApp({ onBack }) {
     };
 
     try {
-      const res = await api.post("/auth/register", payload); {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
+const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(payload),
+});
 
 
       console.log("STATUS:", res.status);
