@@ -1,4 +1,5 @@
 import { useState } from "react";
+import api from "../api";
 
 export default function RegisterApp({ onBack }) {
   // console.log("REGISTER COMPONENT RENDERED");
@@ -135,7 +136,7 @@ export default function RegisterApp({ onBack }) {
     };
 
     try {
-      const res = await fetch("http://localhost:3000/auth/register", {
+      const res = await api.post("/auth/register", payload);
         method: "POST",
         headers: {
           "Content-Type": "application/json",
