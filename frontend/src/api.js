@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "https://therapistdesk.onrender.com";
 
 // ---------------- AUTH ----------------
 export async function login(email, password) {
