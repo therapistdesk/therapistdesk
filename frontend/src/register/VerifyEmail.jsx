@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const handleVerify = async () => {
     const email = localStorage.getItem("verifyEmail");
@@ -9,7 +10,7 @@ export default function VerifyEmail() {
 
     console.log("VERIFY START", email, password);
 
-    const res = await fetch("http://localhost:3000/auth/verify-email", {
+    const res = await fetch(`${API_URL}/auth/verify-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -25,7 +26,7 @@ export default function VerifyEmail() {
       const email = localStorage.getItem("verifyEmail");
 
       try {
-        const res = await fetch("http://localhost:3000/auth/login", {
+        const res = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -88,7 +89,7 @@ export default function VerifyEmail() {
         onClick={async () => {
           const email = localStorage.getItem("verifyEmail");
 
-          await fetch("http://localhost:3000/auth/resend-code", {
+          await fetch(`${API_URL}/auth/resend-code`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

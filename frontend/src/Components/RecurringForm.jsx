@@ -17,6 +17,7 @@ export default function RecurringForm({
     const [date, setDate] = useState("");
     const [startHour, setStartHour] = useState("08");
     const [startMinute, setStartMinute] = useState("00");
+    const API_URL = import.meta.env.VITE_API_URL;
 
     // function roundTo30(dateString) {
     //     const d = new Date(dateString);
@@ -106,7 +107,7 @@ export default function RecurringForm({
             });
             console.log("CLIENT:", selectedClient);
 
-            const res = await fetch("http://localhost:3000/appointments/recurring", {
+            const res = await fetch(`${API_URL}/appointments/recurring`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

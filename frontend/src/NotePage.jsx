@@ -8,10 +8,11 @@ export default function NotePage() {
 
   const [notes, setNotes] = useState("");
   const [initialNotes, setInitialNotes] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL;
   
   // LOAD
   useEffect(() => {
-    fetch(`http://localhost:3000/appointments/${id}`, {
+    fetch(`${API_URL}/appointments/${id}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -26,23 +27,6 @@ export default function NotePage() {
 
   // CHANGE CHECK
   const hasChanges = notes !== initialNotes;
-
-  // SAVE
-  // const handleSave = async () => {
-  //   await fetch(`http://localhost:3000/appointments/${id}`, {
-  //     method: "PATCH",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       Authorization: `Bearer ${localStorage.getItem("token")}`,
-  //     },
-  //     body: JSON.stringify({ notes }),
-  //   });
-
-  //   // 👇 сигнал към App да презареди appointments
-  //   navigate("/", { state: { reload: true } });
-  // };
-
-
 
   const handleSave = async () => {
   await updateAppointment(localStorage.getItem("token"), id, {
