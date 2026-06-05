@@ -31,6 +31,7 @@ const WORK_END_MINUTE = 30;
 const SLOT = 30;
 const PX_PER_MINUTE = 1;
 const DAY_START = WORK_START * 60;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ===== HELPERS =====
 const getBlockColor = (type) => {
@@ -254,7 +255,7 @@ function App() {
 
     const subData = sub.toJSON();
 
-    const res = await fetch('http://localhost:3000/push/subscribe', {
+    const res = await fetch(`${API_URL}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -432,7 +433,7 @@ function App() {
     async function loadClients() {
       const token = localStorage.getItem('token');
 
-      const res = await fetch('http://localhost:3000/clients', {
+      const res = await fetch(`${API_URL}/clients`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -463,7 +464,7 @@ function App() {
       return;
     }
 
-    fetch("http://localhost:3000/therapists/me", {
+    fetch(`${API_URL}/therapists/me`, {
       headers: {
         Authorization: `Bearer ${t}`,
       },
@@ -781,7 +782,7 @@ function App() {
       return;
     }
 
-    const res = await fetch("http://localhost:3000/auth/login", {
+    const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -817,7 +818,7 @@ function App() {
       return;
     }
 
-    const res = await fetch("http://localhost:3000/therapists/register", {
+    const res = await fetch(`${API_URL}/therapists/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -850,7 +851,7 @@ function App() {
       return;
     }
 
-    await fetch("http://localhost:3000/auth/forgot-password", {
+    await fetch(`${API_URL}/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1158,7 +1159,7 @@ function App() {
                       return;
                     }
 
-                    await fetch(`http://localhost:3000/clients/${c.id}`, {
+                    await fetch(`${API_URL}/clients/${c.id}`, {
                       method: "DELETE",
                       headers: {
                         Authorization: `Bearer ${token}`,
@@ -2111,7 +2112,7 @@ function App() {
               }
 
               // 3. изтриване
-              await fetch(`http://localhost:3000/clients/${clientId}`, {
+              await fetch(`${API_URL}/clients/${clientId}`, {
                 method: "DELETE",
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -2344,7 +2345,7 @@ function App() {
 
                 const token = localStorage.getItem("token");
 
-                const res = await fetch("http://localhost:3000/clients", {
+                const res = await fetch(`${API_URL}/clients`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
