@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
