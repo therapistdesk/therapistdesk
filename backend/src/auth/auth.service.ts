@@ -84,11 +84,14 @@ export class AuthService {
       const name =
         `${therapist.firstName || ''} ${therapist.lastName || ''}`.trim() || email;
 
+      const token = Math.random().toString(36).substring(2, 12);
+
       await this.prisma.client.create({
         data: {
           name,
           email,
           therapistId: therapist.id,
+          clientAccessToken: token,
         },
       });
     }
@@ -143,59 +146,59 @@ export class AuthService {
   }
 
   async verifyEmail(dto: any) {
-      const { email, code } = dto;
+    const { email, code } = dto;
 
-      const user = await this.prisma.user.findUnique({
-        where: { email },
-      });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
 
-      if (!user) {
-        throw new BadRequestException('User not found');
-      }
-
-      if (user.verificationCode !== code) {
-        throw new BadRequestException('Invalid code');
-      }
-
-      if (
-        user.verificationCodeExpiresAt &&
-        user.verificationCodeExpiresAt < new Date()
-      ) {
-        throw new BadRequestException('Code expired');
-      }
-
-      await this.prisma.user.update({
-        where: { email },
-        data: {
-          isVerified: true,
-          verificationCode: null,
-          verificationCodeExpiresAt: null,
-        },
-      });
-
-      return { success: true };
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
+
+    if (user.verificationCode !== code) {
+      throw new BadRequestException('Invalid code');
+    }
+
+    if (
+      user.verificationCodeExpiresAt &&
+      user.verificationCodeExpiresAt < new Date()
+    ) {
+      throw new BadRequestException('Code expired');
+    }
+
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        isVerified: true,
+        verificationCode: null,
+        verificationCodeExpiresAt: null,
+      },
+    });
+
+    return { success: true };
+  }
 
   async resendCode(email: string) {
-      const user = await this.prisma.user.findUnique({
-        where: { email },
-      });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
 
-      if (!user) {
-        return { success: false };
-      }
-
-      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-      await this.prisma.user.update({
-        where: { email },
-        data: {
-          verificationCode: newCode,
-        },
-      });
-
-      console.log("NEW CODE:", newCode);
-
-      return { success: true };
+    if (!user) {
+      return { success: false };
     }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        verificationCode: newCode,
+      },
+    });
+
+    console.log("NEW CODE:", newCode);
+
+    return { success: true };
   }
+}
