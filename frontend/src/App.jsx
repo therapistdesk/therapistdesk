@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import NotePage from "./NotePage";
-import Modal from "./Components/Modal";
+import Modal from "./components/Modal";
 import ClientAccess from "./ClientAccess";
 import ClientQR from "./components/ClientQR";
 
@@ -22,7 +22,7 @@ import ResetPassword from "./register/ResetPassword";
 import VerifyEmail from "./register/VerifyEmail";
 import { useNavigate } from "react-router-dom";
 
-import RecurringForm from "./Components/RecurringForm";
+import RecurringForm from "./components/RecurringForm";
 console.log("RecurringForm:", RecurringForm);
 
 // console.log("API_URL:", API_URL);
