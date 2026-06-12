@@ -1128,6 +1128,7 @@ function App() {
             })
 
             .map((c) => {
+              console.log("CLIENT ROW", c);
               if (!c.client) return null;
 
               return (
