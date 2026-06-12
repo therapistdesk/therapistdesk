@@ -1127,103 +1127,100 @@ function App() {
               return name.toLowerCase().includes((search || "").toLowerCase());
             })
 
-            .map((c) => (
-              <div
-                key={c.client.id}
-                ref={(el) => (clientRefs.current[c.client.id] = el)}
-                onClick={() => {
-                  setSelectedClient(c.client);
-                  setActiveBlockMode(null); // 🔥 изключваме блоковете
-                }}
+            .map((c) => {
+              if (!c.client) return null;
 
-                onMouseDown={(e) => {
-                  const timer = setTimeout(() => {
+              return (
+                <div
+                  key={c.client.id}
+                  ref={(el) => (clientRefs.current[c.client.id] = el)}
+                  onClick={() => {
+                    setSelectedClient(c.client);
+                    setActiveBlockMode(null);
+                  }}
+                  onMouseDown={(e) => {
+                    const timer = setTimeout(() => {
+                      setClientMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        client: c,
+                      });
+                    }, 500);
+
+                    setPressTimer(timer);
+                  }}
+                  onMouseUp={() => {
+                    clearTimeout(pressTimer);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
                     setClientMenu({
                       x: e.clientX,
                       y: e.clientY,
                       client: c,
                     });
-                  }, 500);
-
-                  setPressTimer(timer);
-                }}
-
-                onMouseUp={() => {
-                  clearTimeout(pressTimer);
-                }}
-
-                // onMouseLeave={() => {
-                //   clearTimeout(pressTimer);
-                // }}
-
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setClientMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    client: c,
-                  });
-                }}
-                style={{
-                  padding: 5,
-                  cursor: "pointer",
-                  background:
-                    newClientId === c.id
-                      ? "#fff59d" // жълто
-                      : selectedClient?.id === c.client.id
-                        ? "#c8e6c9" // зелено
-                        : "white",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                {c.client?.name}
-                {c.alias && ` (${c.alias})`}
-
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-
-                    const confirmDelete = window.confirm(
-                      t("confirmDeleteClient", lang)
-                    );
-                    if (!confirmDelete) return;
-
-                    const hasAppointments = appointments.some(
-                      (a) => a.client?.id === c.client.id
-                    );
-
-                    if (hasAppointments) {
-                      alert(t("clientHasAppointments", lang));
-                      return;
-                    }
-
-                    await fetch(`${API_URL}/clients/${c.client.id}`, {
-                      method: "DELETE",
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                      },
-                    });
-
-                    const updated = await getClients(token);
-                    setClients(updated);
                   }}
-                  style={{ marginLeft: 10 }}
+                  style={{
+                    padding: 5,
+                    cursor: "pointer",
+                    background:
+                      newClientId === c.id
+                        ? "#fff59d"
+                        : selectedClient?.id === c.client.id
+                          ? "#c8e6c9"
+                          : "white",
+                    transition: "all 0.3s ease",
+                  }}
                 >
-                  ❌
-                </button>
+                  {c.client.name}
+                  {c.alias && ` (${c.alias})`}
 
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    console.log("CLICK", c.client);
-    setQrClient(c.client);
-  }}
->
-  QR
-</button>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
 
-              </div>
-            ))}
+                      const confirmDelete = window.confirm(
+                        t("confirmDeleteClient", lang)
+                      );
+                      if (!confirmDelete) return;
+
+                      const hasAppointments = appointments.some(
+                        (a) => a.client?.id === c.client.id
+                      );
+
+                      if (hasAppointments) {
+                        alert(t("clientHasAppointments", lang));
+                        return;
+                      }
+
+                      await fetch(`${API_URL}/clients/${c.client.id}`, {
+                        method: "DELETE",
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      });
+
+                      const updated = await getClients(token);
+                      setClients(updated);
+                    }}
+                    style={{ marginLeft: 10 }}
+                  >
+                    ❌
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("CLICK", c.client);
+                      setQrClient(c.client);
+                    }}
+                  >
+                    QR
+                  </button>
+                </div>
+              );
+            })}
+
         </div>
 
         <hr />
