@@ -92,7 +92,6 @@ export class AppointmentsService {
         user: true,
       },
     });
-    const therapistName = `${therapist.firstName} ${therapist.lastName}`;
 
     if (!therapist) {
       throw new NotFoundException('Therapist not found');
@@ -143,7 +142,7 @@ export class AppointmentsService {
         hour: "2-digit",
         minute: "2-digit",
       });
-      // const therapistName = therapist.user?.name || "Вашият терапевт";
+      const therapistName = `${therapist.firstName} ${therapist.lastName}`;
 
       await this.prisma.message.create({
         data: {
@@ -227,10 +226,13 @@ export class AppointmentsService {
 
       await this.prisma.message.create({
         data: {
-          clientId: created.clientId,
-          therapistId: created.therapistId,
+          // clientId: created.clientId,
+          // therapistId: created.therapistId,
+          clientId: data.clientId,
+          therapistId: data.therapistId,
           appointment: {
-            connect: { id: appointment.id },
+            // временно 120626
+            // connect: { id: appointment.id },
           },
           type: 'appointment_created',
           content: 'Имате нова среща',
@@ -299,12 +301,12 @@ export class AppointmentsService {
       throw new NotFoundException('Invalid appointment id');
     }
 
-const therapist = await this.prisma.therapist.findUnique({
-  where: { userId },
-  include: {
-    user: true,
-  },
-});
+    const therapist = await this.prisma.therapist.findUnique({
+      where: { userId },
+      include: {
+        user: true,
+      },
+    });
 
     if (!therapist) {
       throw new NotFoundException('Therapist not found');
@@ -374,9 +376,12 @@ const therapist = await this.prisma.therapist.findUnique({
     // 🔥 СПРИ REMINDERS (старото поведение)
     await this.prisma.message.updateMany({
       where: {
-        appointment: {
-          connect: { id: appointment.id },
-        },
+        // временно 120626
+        // appointment: {
+        //   connect: { id: appointment.id },
+        // },
+        appointmentId: data.appointmentId,
+        // -------
         status: {
           in: ["sent", "pending"],
         },
@@ -407,12 +412,12 @@ const therapist = await this.prisma.therapist.findUnique({
   }
 
   async findForUser(userId: number, query: any) {
-const therapist = await this.prisma.therapist.findUnique({
-  where: { userId },
-  include: {
-    user: true,
-  },
-});
+    const therapist = await this.prisma.therapist.findUnique({
+      where: { userId },
+      include: {
+        user: true,
+      },
+    });
 
     if (!therapist) {
       throw new NotFoundException('Therapist not found');
