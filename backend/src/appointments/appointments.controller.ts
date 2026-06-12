@@ -25,9 +25,8 @@ export class AppointmentsController {
   }
 
   @Post('recurring')
-  createRecurring(@Body() body) {
-    console.log("RECURRING HIT", body);
-    return this.service.createRecurring(body);
+  createRecurring(@Req() req, @Body() body) {
+    return this.service.createRecurring(body, req.user.userId);
   }
 
   @Patch(':id')

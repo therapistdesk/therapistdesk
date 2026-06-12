@@ -8,6 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 // import { Therapist } from '../therapists/therapist.entity';
 import { ClientsPrismaService } from './clients.prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
 ],
   controllers: [ClientsController],
-  providers: [ClientsService, ClientsPrismaService],
+  providers: [ClientsService, ClientsPrismaService, PrismaService],
   exports: [ClientsService],
 })
 export class ClientsModule {}

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -33,6 +33,9 @@ model Therapist {
 
   locations TherapistLocation[]
   services  Service[]
+  
+  appointments Appointment[]
+  therapistClients TherapistClient[]
 
   clients  Client[]
   settings TherapistSettings?
@@ -66,9 +69,12 @@ model Client {
 
   country String?
   city    String?
+  clientAccessToken String? @unique
 
   reminderMinutesBefore Int?
   reminderOffsets       String?
+
+  therapistClients TherapistClient[]
 
   therapistId Int
   therapist   Therapist @relation(fields: [therapistId], references: [id])
@@ -90,6 +96,7 @@ model Appointment {
   remindersSent String?
 
   notesRelation Note[]
+  therapist Therapist @relation(fields: [therapistId], references: [id])
   messages      Message[]
 
   client Client @relation(fields: [clientId], references: [id])
@@ -127,6 +134,7 @@ model Message {
   sendAt DateTime
   sentAt DateTime?
   status String // pending | sent | failed
+  readAt DateTime?
 
   createdAt DateTime @default(now())
 
@@ -174,4 +182,18 @@ model RecurringSeries {
   createdAt   DateTime @default(now())
 
   appointments Appointment[]
+}
+
+model TherapistClient {
+  id          Int @id @default(autoincrement())
+
+  therapistId Int
+  clientId    Int
+
+  alias       String?
+
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+  client      Client @relation(fields: [clientId], references: [id])
+
+  @@unique([therapistId, clientId])
 }

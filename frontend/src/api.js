@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_URL = "https://therapistdesk.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // ---------------- AUTH ----------------
 export async function login(email, password) {
@@ -45,10 +43,16 @@ export const deleteClient = async (id, token) => {
 };
 
 // ---------------- APPOINTMENTS ----------------
-export const getAppointments = async (token) => {
+export const getAppointments = async (token, start, end) => {
   if (!token) return [];
 
-  const res = await fetch(`${API_URL}/appointments`, {
+  let url = `${API_URL}/appointments`;
+
+  if (start && end) {
+    url += `?start=${start}&end=${end}`;
+  }
+
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -59,20 +63,12 @@ export const getAppointments = async (token) => {
 };
 
 export const createAppointment = async (token, data) => {
-  console.log("CREATE APPOINTMENT RAW:", data);
-
   const payload = {
     ...data,
-
-    // 🔥 FIX: винаги пращаме число
     clientId: data.clientId?.id || data.clientId,
-
-    // 🔥 FIX: гарантирани валидни дати
     startTime: new Date(data.startTime).toISOString(),
     endTime: new Date(data.endTime).toISOString(),
   };
-
-  console.log("CREATE APPOINTMENT FINAL:", payload);
 
   const res = await fetch(`${API_URL}/appointments`, {
     method: "POST",
@@ -86,7 +82,6 @@ export const createAppointment = async (token, data) => {
   const response = await res.json().catch(() => null);
 
   if (!res.ok) {
-    console.error("CREATE ERROR:", response);
     throw new Error(JSON.stringify(response));
   }
 
@@ -108,9 +103,6 @@ export const updateAppointment = async (token, id, data) => {
 
   const response = await res.json().catch(() => null);
 
-  console.log("UPDATE STATUS:", res.status);
-  console.log("UPDATE RESPONSE:", response);
-
   if (!res.ok) {
     throw new Error(JSON.stringify(response));
   }
@@ -127,8 +119,22 @@ export async function deleteAppointment(token, id) {
   });
 }
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-});
+export const getMessages = async (token) => {
+  const res = await fetch(`${API_URL}/messages`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-export default api;
+  if (!res.ok) return [];
+  return res.json();
+};
+
+export const markMessageAsRead = async (id, token) => {
+  await fetch(`${API_URL}/messages/${id}/read`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

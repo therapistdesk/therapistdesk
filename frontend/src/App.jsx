@@ -2,13 +2,17 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import NotePage from "./NotePage";
 import Modal from "./Components/Modal";
+import ClientAccess from "./ClientAccess";
+import ClientQR from "./components/ClientQR";
 
 import {
   getClients,
   getAppointments,
+  getMessages,
   createAppointment,
   deleteAppointment,
   updateAppointment,
+  markMessageAsRead,
 } from "./api";
 
 import { t } from "./translations";
@@ -21,17 +25,21 @@ import { useNavigate } from "react-router-dom";
 import RecurringForm from "./Components/RecurringForm";
 console.log("RecurringForm:", RecurringForm);
 
+// console.log("API_URL:", API_URL);
+
 // const SLOT = 30;
 // const PX_PER_MINUTE = 1;
 // const DAY_START = WORK_START  * 60;
 
-const WORK_START = 8;
-const WORK_END = 24;
+const WORK_START = 7;
+const WORK_END = 20;
 const WORK_END_MINUTE = 30;
 const SLOT = 30;
 const PX_PER_MINUTE = 1;
 const DAY_START = WORK_START * 60;
-const API_URL = import.meta.env.VITE_API_URL;
+const DAY_END = WORK_END * 60 + WORK_END_MINUTE;
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // ===== HELPERS =====
 const getBlockColor = (type) => {
@@ -79,11 +87,24 @@ const toMinutes = (date) => {
 const snap = (min) => Math.floor(min / SLOT) * SLOT;
 const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
+// const isPastDateTime = (day, minutes) => {
+//   const d = new Date(day);
+//   d.setHours(0, 0, 0, 0);
+//   d.setMinutes(minutes);
+//   return d < new Date();
+// };
+
 const isPastDateTime = (day, minutes) => {
-  const d = new Date(day);
-  d.setHours(0, 0, 0, 0);
-  d.setMinutes(minutes);
-  return d < new Date();
+  const now = new Date();
+
+  const slot = new Date(day);
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  slot.setHours(hours, mins, 0, 0);
+
+  return slot < now;
 };
 
 const isOverlapping = (a, b) => {
@@ -197,19 +218,16 @@ function layoutEvents(events) {
 
 function App() {
   //----------------------------------------------
+  const [qrClient, setQrClient] = useState(null);
+  const path = window.location.pathname;
+
+  if (path.startsWith("/client-access/")) {
+    return <ClientAccess />;
+  }
+
   const [showRecurring, setShowRecurring] = useState(false);
-  // const WORK_START = 8;
-  // const WORK_END = 24;
-  // const WORK_END_MINUTE = 30;
-  // const SLOT = 30;
-  // const PX_PER_MINUTE = 1;
-  // const DAY_START = WORK_START * 60;
 
   console.log("showRecurring:", showRecurring);
-
-  // useEffect(() => {
-  //   console.log("SELECTED CHANGED:", selectedClient);
-  // }, [selectedClient]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -279,9 +297,7 @@ function App() {
     const rawData = window.atob(base64);
     return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
   }
-
   //---------------------------------------------
-
 
   // console.log("APP RENDER");
   const [moveMode, setMoveMode] = useState(null);
@@ -310,6 +326,7 @@ function App() {
   const verifyEmail = localStorage.getItem("verifyEmail");
   const [currentDate, setCurrentDate] = useState(new Date());
   const baseDate = currentDate;
+  const [messages, setMessages] = useState([]);
 
   // console.log("TOKEN:", token);
   // console.log("VERIFY:", verifyEmail);
@@ -328,8 +345,6 @@ function App() {
       return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
     }
 
-    ///////////////////////////////////////
-
     localStorage.setItem("mode", mode);
   }, [mode]);
   const [email, setEmail] = useState("");
@@ -339,6 +354,9 @@ function App() {
   const [appointments, setAppointments] = useState([]);
   const [activeAppointment, setActiveAppointment] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+
+  const [user, setUser] = useState(null);
+  const [therapist, setTherapist] = useState(null);
 
   const [selectedClient, setSelectedClient] = useState(null);
   const [newClientId, setNewClientId] = useState(null);
@@ -369,6 +387,13 @@ function App() {
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
+
+  useEffect(() => {
+    const savedTherapist = localStorage.getItem("therapist");
+    if (savedTherapist) {
+      setTherapist(JSON.parse(savedTherapist));
+    }
+  }, []);
 
   const isBlocked = (day, startMin, endMin) => {
     const dDay = new Date(day).setHours(0, 0, 0, 0);
@@ -406,20 +431,49 @@ function App() {
   const [hoverY, setHoverY] = useState(null);
   const [hoverDayIndex, setHoverDayIndex] = useState(null);
 
-  // const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
-  // const [currentMonthOffset, setCurrentMonthOffset] = useState(0);
-
   const reloadAppointments = () => {
     const start = new Date(startOfWeek);
 
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
 
-    return getAppointments(token, {
-      from: start.toISOString(),
-      to: end.toISOString(),
-    }).then(setAppointments);
+    return getAppointments(
+      token,
+      start.getTime(),
+      end.getTime()
+    ).then(setAppointments);
   };
+
+  const markAsRead = async (id) => {
+    await markMessageAsRead(id, token);
+
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === id ? { ...m, readAt: new Date() } : m
+      )
+    );
+  };
+
+  const unreadCount = messages.filter(m => !m.readAt).length;
+
+  useEffect(() => {
+    if (!token) return;
+
+    getMessages(token).then(data => {
+      console.log("MESSAGES FROM API:", data);
+      setMessages(data);
+    });
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    // getMessages(token).then(setMessages);
+    getMessages(token).then(data => {
+      console.log("MESSAGES:", data);
+      setMessages(data);
+    });
+  }, [token]);
 
   useEffect(() => {
     console.log("EFFECT TRIGGER:", selectedClient);
@@ -443,10 +497,6 @@ function App() {
 
       console.log("CLIENTS:", data);
 
-      // if (data.length > 0 && !selectedClient) {
-      //   console.log("SETTING CLIENT:", data[0]);
-      //   setSelectedClient(data[0]);
-      // }
     }
 
     loadClients();
@@ -488,28 +538,11 @@ function App() {
     };
   }, [pressTimer]);
 
-  // ------------------------ 090526
-  // useEffect(() => {
-  //   const handleClickOutside = (e) => {
-  //     e.stopPropagation(); // 🔥 ключово
-  //     setHoverY(null);
-  //     setHoverDayIndex(null);
-  //   };
-
-  //   window.addEventListener("click", handleClickOutside, true); // 🔥 capture
-
-  //   return () => {
-  //     window.removeEventListener("click", handleClickOutside, true);
-  //   };
-  // }, []);
-
   useEffect(() => {
     const handleClickOutside = () => {
       setHoverY(null);
       setHoverDayIndex(null);
     };
-
-    // window.addEventListener("click", handleClickOutside);
 
     return () => {
       window.removeEventListener("click", handleClickOutside);
@@ -596,55 +629,6 @@ function App() {
     return d;
   });
 
-  // useEffect(() => {
-  //   const handler = (e) => {
-  //     const eventCard = e.target.closest(".event-card");
-  //     if (eventCard) return;
-  //     const col = e.target.closest("[data-dayindex]");
-  //     if (!col) return;
-
-  //     const dayIndex = Number(col.dataset.dayindex);
-  //     if (Number.isNaN(dayIndex)) return;
-
-  //     const rect = col.getBoundingClientRect();
-  //     const y = e.clientY - rect.top;
-
-  //     // 🔥 позволяваме и create, и move
-  //     if (!selectedClient && !moveMode) return;
-
-  //     // 🔥 block само drag
-  //     if (dragged) return;
-
-  //     handleSlotClick(weekDays[dayIndex], y);
-  //   };
-
-  //   window.addEventListener("click", handler);
-
-  //   return () => window.removeEventListener("click", handler);
-  // }, [selectedClient, moveMode, dragged, weekDays]);
-
-
-  // ------------------------
-  // useEffect(() => {
-  //   if (!token) return;
-
-  //   getAppointments(token).then((data) => {
-  //     const start = new Date(startOfWeek);
-
-  //     const end = new Date(start);
-  //     end.setDate(end.getDate() + 7);
-
-  //     const filtered = data.filter((a) => {
-  //       const d = new Date(a.startTime);
-  //       d.setHours(0, 0, 0, 0);
-
-  //       return d >= start && d < end;
-  //     });
-
-  //     setAppointments(filtered);
-  //   });
-  // }, [startOfWeek, token]);
-
   useEffect(() => {
     if (!token) return;
     reloadAppointments();
@@ -674,13 +658,20 @@ function App() {
         //   start: toMinutes(a.startTime),
         //   end: toMinutes(a.endTime),
         // }));
-        .map((a) => ({
-          ...a,
-          start: toMinutes(a.startTime),
-          end: toMinutes(a.endTime),
-          column: 0,
-          totalColumns: 1,
-        }));
+        .map((a) => {
+          const relation = a.therapist?.therapistClients?.find(
+            (tc) => tc.clientId === a.clientId
+          );
+
+          return {
+            ...a,
+            relation, // 👈 добавяме го тук
+            start: toMinutes(a.startTime),
+            end: toMinutes(a.endTime),
+            column: 0,
+            totalColumns: 1,
+          };
+        });
 
       return layoutEvents(dayEvents);
     });
@@ -798,6 +789,9 @@ function App() {
     if (data.access_token) {
       localStorage.setItem("token", data.access_token);
 
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("therapist", JSON.stringify(data.therapist));
+
       localStorage.removeItem("mode");
       setMode("login");
 
@@ -805,6 +799,9 @@ function App() {
     } else {
       alert("Login failed");
     }
+
+    setUser(data.user);
+    setTherapist(data.therapist);
   };
 
   const handleRegister = async () => {
@@ -835,6 +832,9 @@ function App() {
       if (data.refresh_token) {
         localStorage.setItem("refresh_token", data.refresh_token);
       }
+
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("therapist", JSON.stringify(data.therapist));
 
       localStorage.removeItem("mode");
 
@@ -985,6 +985,8 @@ function App() {
     );
   }
 
+  console.log("CLIENTS:", clients);
+
   return (
     <>
       <div
@@ -996,7 +998,38 @@ function App() {
 
         <h2>TherapistDesk</h2>
 
-        <div>Appointments count: {appointments.length}</div>
+        <div>
+          Добре дошъл, {therapist?.firstName} {therapist?.lastName}
+        </div>
+
+        {/* <div>
+          <h3>Съобщения</h3>
+          <div>Нови съобщения: {unreadCount}</div>
+
+          {messages.map(m => (
+            <div
+              key={m.id}
+              onClick={() => {
+                console.log("CLICK", m.id);
+                markAsRead(m.id);
+              }}
+              style={{
+                marginBottom: '10px',
+                cursor: 'pointer',
+                background: m.readAt ? '#eee' : '#cce5ff',
+                padding: '8px',
+              }}
+            >
+              <div><b>{m.clientId}</b></div>
+              <div>{m.content}</div>
+              <div style={{ fontSize: '12px', opacity: 0.6 }}>
+                {new Date(m.createdAt).toLocaleString()}
+              </div>
+            </div>
+          ))}
+        </div> */}
+
+        {/* <div>Appointments count: {appointments.length}</div> */}
 
         {moveMode && (
           <div
@@ -1080,22 +1113,26 @@ function App() {
         </div>
 
 
-        <div style={{ color: "red" }}>
+        {/* <div style={{ color: "red" }}>
           DEBUG SAME PLACE: {clients.length}
-        </div>
+        </div> */}
 
         <div style={{ maxHeight: 120, overflow: "auto", border: "1px solid #ccc" }}>
           {clients
-            .filter((c) =>
-              c.name.toLowerCase().includes(search.toLowerCase())
-            )
+            // .filter((c) =>
+            //   c.client?.name?.toLowerCase().includes(search.toLowerCase())
+            // )
+            .filter((c) => {
+              const name = c.client?.name || c.name || "";
+              return name.toLowerCase().includes((search || "").toLowerCase());
+            })
 
             .map((c) => (
               <div
-                key={c.id}
-                ref={(el) => (clientRefs.current[c.id] = el)}
+                key={c.client.id}
+                ref={(el) => (clientRefs.current[c.client.id] = el)}
                 onClick={() => {
-                  setSelectedClient(c);
+                  setSelectedClient(c.client);
                   setActiveBlockMode(null); // 🔥 изключваме блоковете
                 }}
 
@@ -1133,13 +1170,14 @@ function App() {
                   background:
                     newClientId === c.id
                       ? "#fff59d" // жълто
-                      : selectedClient?.id === c.id
+                      : selectedClient?.id === c.client.id
                         ? "#c8e6c9" // зелено
                         : "white",
                   transition: "all 0.3s ease",
                 }}
               >
-                {c.name}
+                {c.client?.name}
+                {c.alias && ` (${c.alias})`}
 
                 <button
                   onClick={async (e) => {
@@ -1151,7 +1189,7 @@ function App() {
                     if (!confirmDelete) return;
 
                     const hasAppointments = appointments.some(
-                      (a) => a.client?.id === c.id
+                      (a) => a.client?.id === c.client.id
                     );
 
                     if (hasAppointments) {
@@ -1159,7 +1197,7 @@ function App() {
                       return;
                     }
 
-                    await fetch(`${API_URL}/clients/${c.id}`, {
+                    await fetch(`${API_URL}/clients/${c.client.id}`, {
                       method: "DELETE",
                       headers: {
                         Authorization: `Bearer ${token}`,
@@ -1173,6 +1211,16 @@ function App() {
                 >
                   ❌
                 </button>
+
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    console.log("CLICK", c.client);
+    setQrClient(c.client);
+  }}
+>
+  QR
+</button>
 
               </div>
             ))}
@@ -1256,20 +1304,6 @@ function App() {
 
         <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
           {/* МЕСЕЦ */}
-          {/* <button onClick={() => {
-            setCurrentMonthOffset((m) => m - 1);
-            setCurrentWeekOffset(0); // reset седмицата
-          }}>
-            ⏪ Month
-          </button>
-
-          <button onClick={() => {
-            setCurrentMonthOffset((m) => m + 1);
-            setCurrentWeekOffset(0);
-          }}>
-            Month ⏩
-          </button> */}
-
           <button onClick={() => {
             setCurrentDate(d => {
               const newDate = new Date(d);
@@ -1408,9 +1442,9 @@ function App() {
             }}
           >
             {Array.from({
-              length: ((WORK_END * 60 + WORK_END_MINUTE) - WORK_START * 60) / 30
+              length: ((WORK_END * 60 + WORK_END_MINUTE) - WORK_START * 60) / SLOT
             }).map((_, i) => {
-              const totalMin = WORK_START * 60 + i * 30;
+              const totalMin = WORK_START * 60 + i * SLOT;
               const hour = Math.floor(totalMin / 60);
               const min = (totalMin % 60).toString().padStart(2, "0");
 
@@ -1418,7 +1452,7 @@ function App() {
                 <div
                   key={i}
                   style={{
-                    height: 30,
+                    height: SLOT,
                     boxSizing: "border-box",
                     display: "flex",
                     alignItems: "center",
@@ -1466,51 +1500,6 @@ function App() {
                 width: "100%",
                 backgroundImage: "repeating-linear-gradient(to bottom, #eee 0px, #eee 1px, transparent 1px, transparent 30px)",
               }}
-              // onMouseDownCapture={async (e) => {
-              //   const rect = e.currentTarget.getBoundingClientRect();
-              //   const y = e.clientY - rect.top;
-
-              //   const snapped = snap(y / PX_PER_MINUTE);
-
-              //   setHoverDayIndex(dayIndex);
-              //   setHoverY(snapped * PX_PER_MINUTE);
-
-              //   // 🟢 MOVE MODE
-              //   if (moveMode) {
-              //     const minutesFromTop = snapped;
-              //     const absoluteMinutes = DAY_START + minutesFromTop;
-
-              //     const durationMs =
-              //       new Date(moveMode.endTime) - new Date(moveMode.startTime);
-
-              //     const durationMinutes = durationMs / 60000;
-
-              //     // 👉 блокове пазим
-              //     if (isBlocked(weekDays[dayIndex], absoluteMinutes, absoluteMinutes + durationMinutes)) {
-              //       return;
-              //     }
-
-              //     const start = new Date(weekDays[dayIndex]);
-              //     start.setHours(0, 0, 0, 0);
-              //     start.setMinutes(absoluteMinutes);
-
-              //     const end = new Date(start);
-              //     end.setMinutes(end.getMinutes() + durationMinutes);
-
-              //     await updateAppointment(token, moveMode.id, {
-              //       startTime: start.toISOString(),
-              //       endTime: end.toISOString(),
-              //     });
-
-              //     setMoveMode(null);
-              //     setHoverY(null);
-              //     setHoverDayIndex(null);
-
-              //     await reloadAppointments();
-
-              //     return; // 🔥 СПИРА останалото
-              //   }
-              // }}
 
               onMouseDown={(e) => {
                 if (!activeBlockMode) return;
@@ -1660,8 +1649,8 @@ function App() {
               )}
 
               {/* GRID + PAST */}
-              {Array.from({ length: 24 }).map((_, i) => {
-                const minutes = DAY_START + i * 30;
+              {Array.from({ length: (DAY_END - DAY_START) / SLOT + 1 }).map((_, i) => {
+                const minutes = DAY_START + i * SLOT;
 
                 const day = weekDays[dayIndex];            // 👈 важно
                 const isPast = isPastDateTime(day, minutes); // 👈 връщаме логиката
@@ -1671,8 +1660,8 @@ function App() {
                     key={i}
                     style={{
                       position: "absolute",
-                      top: i * 30,
-                      height: 30,
+                      top: i * SLOT,
+                      height: SLOT,
                       left: 0,
                       right: 0,
                       borderTop:
@@ -1795,7 +1784,7 @@ function App() {
                     style={{
                       position: "absolute",
                       top: hoverY,
-                      height: 30,
+                      height: SLOT,
                       left: 0,
                       right: 0,
                       background: "rgba(255,0,0,0.05)",
@@ -1819,56 +1808,6 @@ function App() {
               )}
 
               {/* PREVIEW */}
-              {/* {hoverY !== null && selectedClient && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: hoverY + 1,
-                    height: duration * PX_PER_MINUTE,
-                    left: 4,
-                    right: 4,
-                    // transition: "top 0.08s ease-out",
-                    // transform: "scale(0.98)",
-                    background: "#fff",
-                    zIndex: 1000,
-                    borderLeft: `4px solid ${darkenColor(
-                      getClientColor(selectedClient),
-                      0.25
-                    )}`,
-                    borderRadius: 6,
-                    padding: "4px 4px 4px 6px",
-
-                    fontSize: 12,
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-                    opacity: 0.8,
-                    pointerEvents: "none",
-                  }}
-                >
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>
-                    {clients.find((c) => c.id === selectedClient)?.name}
-                  </div>
-
-                  <div style={{ fontSize: 11, color: "#555" }}>
-                    {(() => {
-                      const startMin = DAY_START + hoverY / PX_PER_MINUTE;
-                      const endMin = startMin + duration;
-
-                      const sh = Math.floor(startMin / 60)
-                        .toString()
-                        .padStart(2, "0");
-                      const sm = (startMin % 60).toString().padStart(2, "0");
-
-                      const eh = Math.floor(endMin / 60)
-                        .toString()
-                        .padStart(2, "0");
-                      const em = (endMin % 60).toString().padStart(2, "0");
-
-                      return `${sh}:${sm} – ${eh}:${em} • ${duration}m`;
-                    })()}
-                  </div>
-                </div>
-              )} */}
-
 
               {events
                 .filter(a => a.status !== "cancelled") // 🔥 double safety
@@ -1891,6 +1830,7 @@ function App() {
 
                   const width = 100 / a.totalColumns;
                   const left = a.column * width;
+                  const isRead = a.messages?.some(m => m.readAt);
 
                   return (
                     <div
@@ -2027,6 +1967,11 @@ function App() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div style={{ fontWeight: 600, fontSize: 13 }}>
                             {a.client?.name}
+                            {/* {a.relation?.alias && ` (${a.relation.alias})`} */}
+                          </div>
+
+                          <div>
+                            {isRead ? "✔" : "🔔"}
                           </div>
 
                           {a.notes && (
@@ -2089,6 +2034,36 @@ function App() {
           }}
           onMouseLeave={() => setClientMenu(null)}
         >
+
+          {/* ✅ НОВ БУТОН */}
+          <div
+            style={{ cursor: "pointer", marginBottom: 5 }}
+            onClick={async () => {
+              const clientId = clientMenu.client.client.id;
+
+              const newAlias = prompt("Въведи код за клиента:");
+
+              if (newAlias === null) return;
+
+              await fetch(`${API_URL}/clients/${clientId}/alias`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ alias: newAlias }),
+              });
+
+              const updated = await getClients(token);
+              setClients(updated);
+
+              setClientMenu(null);
+            }}
+          >
+            ✏️ Код
+          </div>
+
+          {/* ❌ DELETE */}
           <div
             style={{ cursor: "pointer", color: "red" }}
             onClick={async () => {
@@ -2411,9 +2386,46 @@ function App() {
         </Modal>
       )}
 
+      {qrClient && (
+        <div style={overlayStyle}>
+          <div style={modalStyle}>
+
+            <button
+              onClick={() => setQrClient(null)}
+              style={{ float: "right" }}
+            >
+              ✖
+            </button>
+
+            <ClientQR token={qrClient.clientAccessToken} />
+
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
+
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+const modalStyle = {
+  background: "#fff",
+  padding: 20,
+  borderRadius: 10,
+  minWidth: 300,
+};
 
 export default App;
 

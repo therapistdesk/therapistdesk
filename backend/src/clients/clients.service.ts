@@ -20,34 +20,55 @@ export class ClientsService {
       throw new NotFoundException('Therapist not found');
     }
 
-    return this.prismaService.findAll(therapist.id);
+    return this.prisma.therapistClient.findMany({
+      where: {
+        therapistId: therapist.id,
+      },
+      include: {
+        client: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
   }
-
 
 
   async createClient(dto: any, userId: number) {
-  const therapist = await this.prisma.therapist.findUnique({
-    where: { userId },
-  });
+    const token = Math.random().toString(36).substring(2, 15);
 
-  if (!therapist) {
-    throw new Error("Therapist not found");
+    const therapist = await this.prisma.therapist.findUnique({
+      where: { userId },
+    });
+
+    if (!therapist) {
+      throw new Error("Therapist not found");
+    }
+
+    // 1. създаваме client
+    const client = await this.prisma.client.create({
+      data: {
+        name: dto.name,
+        phone: dto.phone || null,
+        email: dto.email || null,
+        notes: dto.notes || null,
+        country: dto.country || null,
+        city: dto.city || null,
+        clientAccessToken: token,
+        therapistId: therapist.id,
+      },
+    });
+
+    // 2. създаваме връзката (ВАЖНО)
+    await this.prisma.therapistClient.create({
+      data: {
+        therapistId: therapist.id,
+        clientId: client.id,
+      },
+    });
+
+    return client;
   }
-
-  return this.prisma.client.create({
-    data: {
-      name: dto.name,
-      phone: dto.phone || null,
-      email: dto.email || null,
-      notes: dto.notes || null,
-
-      country: dto.country || null,
-      city: dto.city || null,
-
-      therapistId: therapist.id,
-    },
-  });
-}
 
   async updateClient(userId: number, id: number, name: string) {
     return this.prismaService.updateClient(userId, id, name);

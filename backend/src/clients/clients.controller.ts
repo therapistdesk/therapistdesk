@@ -11,11 +11,15 @@ import {
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PrismaService } from '../prisma/prisma.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('clients')
 export class ClientsController {
-  constructor(private clientsService: ClientsService) { }
+  constructor(
+  private prisma: PrismaService,
+  private clientsService: ClientsService,
+) {}
 
   @Get()
   findAll(@Req() req) {
@@ -55,5 +59,37 @@ export class ClientsController {
       body.offsets,
       req.user.userId,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/alias')
+  async updateAlias(
+    @Param('id') clientId: string,
+    @Body() body: { alias: string },
+    @Req() req
+  ) {
+    console.log("REQ USER:", req.user); // 👈 DEBUG
+
+    const userId = req.user.userId || req.user.sub;
+
+    const therapist = await this.prisma.therapist.findUnique({
+      where: { userId },
+    });
+
+    if (!therapist) {
+      throw new NotFoundException('Therapist not found');
+    }
+
+    return this.prisma.therapistClient.update({
+      where: {
+        therapistId_clientId: {
+          therapistId: therapist.id,
+          clientId: Number(clientId),
+        },
+      },
+      data: {
+        alias: body.alias,
+      },
+    });
   }
 }

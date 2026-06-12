@@ -74,7 +74,7 @@ export default function RecurringForm({
         // }
 
         console.log({
-            clientId: selectedClient.id,
+            clientId: selectedClient?.id,
             therapistId: therapist?.id,
             start,
             end,
@@ -114,7 +114,7 @@ export default function RecurringForm({
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    clientId: selectedClient.id,
+                    clientId: selectedClient?.id,
                     therapistId: therapist?.id || 1,
                     startTime: startTime.toISOString(),
                     endTime: endTime.toISOString(),

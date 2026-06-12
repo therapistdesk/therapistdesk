@@ -1,5 +1,4 @@
 import { useState } from "react";
-import api from "../api";
 
 export default function RegisterApp({ onBack }) {
   // console.log("REGISTER COMPONENT RENDERED");
