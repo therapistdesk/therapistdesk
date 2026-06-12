@@ -380,7 +380,7 @@ export class AppointmentsService {
         // appointment: {
         //   connect: { id: appointment.id },
         // },
-        appointmentId: data.appointmentId,
+        appointmentId: null,
         // -------
         status: {
           in: ["sent", "pending"],
