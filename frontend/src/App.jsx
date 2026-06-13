@@ -815,7 +815,7 @@ function App() {
       return;
     }
 
-    const res = await fetch(`${API_URL}/therapists/register`, {
+    const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
