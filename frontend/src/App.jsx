@@ -1129,14 +1129,17 @@ function App() {
 
             .map((c) => {
               console.log("CLIENT ROW", c);
-              if (!c.client) return null;
+              // if (!c.client) return null;
+              if (!c) return null;
 
               return (
                 <div
-                  key={c.client.id}
-                  ref={(el) => (clientRefs.current[c.client.id] = el)}
+                  // key={c.client.id}
+                  key={c.id}
+                  ref={(el) => (clientRefs.current[c.id] = el)}
                   onClick={() => {
-                    setSelectedClient(c.client);
+                    // setSelectedClient(c.client);
+                    setSelectedClient(c);
                     setActiveBlockMode(null);
                   }}
                   onMouseDown={(e) => {
@@ -1167,13 +1170,15 @@ function App() {
                     background:
                       newClientId === c.id
                         ? "#fff59d"
-                        : selectedClient?.id === c.client.id
+                        // : selectedClient?.id === c.client.id
+                        : selectedClient?.id === c.id
                           ? "#c8e6c9"
                           : "white",
                     transition: "all 0.3s ease",
                   }}
                 >
-                  {c.client.name}
+                  {/* {c.client.name} */}
+                  {c.name}
                   {c.alias && ` (${c.alias})`}
 
                   <button
@@ -1186,7 +1191,8 @@ function App() {
                       if (!confirmDelete) return;
 
                       const hasAppointments = appointments.some(
-                        (a) => a.client?.id === c.client.id
+                        // (a) => a.client?.id === c.client.id
+                        (a) => a.client?.id === c.id
                       );
 
                       if (hasAppointments) {
@@ -1194,7 +1200,7 @@ function App() {
                         return;
                       }
 
-                      await fetch(`${API_URL}/clients/${c.client.id}`, {
+                      await fetch(`${API_URL}/clients/${c.id}`, {
                         method: "DELETE",
                         headers: {
                           Authorization: `Bearer ${token}`,
@@ -1212,8 +1218,8 @@ function App() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log("CLICK", c.client);
-                      setQrClient(c.client);
+                      console.log("CLICK", c);
+                      setQrClient(c);
                     }}
                   >
                     QR
