@@ -123,19 +123,19 @@ export class AppointmentsService {
         },
       });
 
-      await this.prisma.therapistClient.upsert({
-        where: {
-          therapistId_clientId: {
-            therapistId: appointment.therapistId,
-            clientId: appointment.clientId,
-          },
-        },
-        update: {},
-        create: {
-          therapistId: appointment.therapistId,
-          clientId: appointment.clientId,
-        },
-      });
+      // await this.prisma.therapistClient.upsert({
+      //   where: {
+      //     therapistId_clientId: {
+      //       therapistId: appointment.therapistId,
+      //       clientId: appointment.clientId,
+      //     },
+      //   },
+      //   update: {},
+      //   create: {
+      //     therapistId: appointment.therapistId,
+      //     clientId: appointment.clientId,
+      //   },
+      // });
 
       const formattedDate = new Date(appointment.startTime).toLocaleDateString("bg-BG");
       const formattedTime = new Date(appointment.startTime).toLocaleTimeString("bg-BG", {
@@ -439,16 +439,27 @@ export class AppointmentsService {
       }
     }
 
+    // return this.prisma.appointment.findMany({
+    //   where,
+    //   include: {
+    //     client: true,
+    //     messages: true,
+    //     therapist: {
+    //       include: {
+    //         therapistClients: true,
+    //       },
+    //     },
+    //   },
+    //   orderBy: {
+    //     startTime: 'asc',
+    //   },
+    // });
     return this.prisma.appointment.findMany({
       where,
       include: {
         client: true,
         messages: true,
-        therapist: {
-          include: {
-            therapistClients: true,
-          },
-        },
+        therapist: true,
       },
       orderBy: {
         startTime: 'asc',
