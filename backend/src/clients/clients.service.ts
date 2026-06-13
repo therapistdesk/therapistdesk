@@ -20,12 +20,20 @@ export class ClientsService {
       throw new NotFoundException('Therapist not found');
     }
 
-    return this.prisma.therapistClient.findMany({
+    // return this.prisma.therapistClient.findMany({
+    //   where: {
+    //     therapistId: therapist.id,
+    //   },
+    //   include: {
+    //     client: true,
+    //   },
+    //   orderBy: {
+    //     id: 'desc',
+    //   },
+    // });
+    return this.prisma.client.findMany({
       where: {
         therapistId: therapist.id,
-      },
-      include: {
-        client: true,
       },
       orderBy: {
         id: 'desc',
@@ -59,13 +67,13 @@ export class ClientsService {
       },
     });
 
-    // 2. създаваме връзката (ВАЖНО)
-    await this.prisma.therapistClient.create({
-      data: {
-        therapistId: therapist.id,
-        clientId: client.id,
-      },
-    });
+    // // 2. създаваме връзката (ВАЖНО)
+    // await this.prisma.therapistClient.create({
+    //   data: {
+    //     therapistId: therapist.id,
+    //     clientId: client.id,
+    //   },
+    // });
 
     return client;
   }

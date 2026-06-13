@@ -18,9 +18,9 @@ import { PrismaService } from '../prisma/prisma.service';
 @Controller('clients')
 export class ClientsController {
   constructor(
-  private prisma: PrismaService,
-  private clientsService: ClientsService,
-) {}
+    private prisma: PrismaService,
+    private clientsService: ClientsService,
+  ) { }
 
   @Get()
   findAll(@Req() req) {
@@ -81,12 +81,20 @@ export class ClientsController {
       throw new NotFoundException('Therapist not found');
     }
 
-    return this.prisma.therapistClient.update({
+    // return this.prisma.therapistClient.update({
+    //   where: {
+    //     therapistId_clientId: {
+    //       therapistId: therapist.id,
+    //       clientId: Number(clientId),
+    //     },
+    //   },
+    //   data: {
+    //     alias: body.alias,
+    //   },
+    // });
+    return this.prisma.client.update({
       where: {
-        therapistId_clientId: {
-          therapistId: therapist.id,
-          clientId: Number(clientId),
-        },
+        id: Number(clientId),
       },
       data: {
         alias: body.alias,

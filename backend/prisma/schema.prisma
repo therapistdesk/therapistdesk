@@ -31,6 +31,7 @@ model Therapist {
   user      User                @relation(fields: [userId], references: [id])
   locations TherapistLocation[]
   settings  TherapistSettings?
+  appointments Appointment[]
 }
 
 model TherapistLocation {
@@ -64,7 +65,8 @@ model Client {
   appointments          Appointment[]
   therapist             Therapist          @relation(fields: [therapistId], references: [id])
   pushSubscriptions     PushSubscription[]
-  clientAccessToken String @unique
+  clientAccessToken     String @unique
+  alias                 String?
 }
 
 model Appointment {
@@ -84,6 +86,7 @@ model Appointment {
   series        RecurringSeries? @relation(fields: [seriesId], references: [id])
   messages      Message[]
   notesRelation Note[]
+  therapist     Therapist @relation(fields: [therapistId], references: [id])
 }
 
 model Note {
@@ -106,6 +109,7 @@ model Message {
   status        String
   createdAt     DateTime     @default(now())
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  readAt        DateTime?
 
   @@index([sendAt, status])
   @@index([type])
