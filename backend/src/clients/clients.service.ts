@@ -91,10 +91,27 @@ export class ClientsService {
       throw new Error('Therapist not found');
     }
 
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!client || client.therapistId !== therapist.id) {
+      throw new Error('Unauthorized');
+    }
+
+    await this.prisma.pushSubscription.deleteMany({
+      where: { clientId: id },
+    });
+
+    await this.prisma.appointment.deleteMany({
+      where: { clientId: id },
+    });
+
+
     return this.prisma.client.delete({
       where: {
         id,
-        therapistId: therapist.id,
+        // therapistId: therapist.id,
       },
     });
   }

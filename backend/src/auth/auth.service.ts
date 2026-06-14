@@ -81,9 +81,7 @@ export class AuthService {
     // 1005----
 
     if (therapist) {
-      const name =
-        `${therapist.firstName || ''} ${therapist.lastName || ''}`.trim() || email;
-
+      const name = `${therapist.firstName || ''} ${therapist.lastName || ''}`.trim() || email;
       const token = Math.random().toString(36).substring(2, 12);
 
       await this.prisma.client.create({

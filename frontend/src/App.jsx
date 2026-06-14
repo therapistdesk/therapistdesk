@@ -1192,7 +1192,7 @@ function App() {
 
                       const hasAppointments = appointments.some(
                         // (a) => a.client?.id === c.client.id
-                        (a) => a.client?.id === c.id
+                        (a) => a.client?.id === c.id && a.status !== "cancelled"
                       );
 
                       if (hasAppointments) {
@@ -2043,9 +2043,12 @@ function App() {
           <div
             style={{ cursor: "pointer", marginBottom: 5 }}
             onClick={async () => {
-              const clientId = clientMenu.client.client.id;
+              const clientId = clientMenu.client.id;
 
-              const newAlias = prompt("Въведи код за клиента:");
+              const newAlias = prompt(
+                "Въведи код за клиента:",
+                clientMenu.client.alias || ""
+              );
 
               if (newAlias === null) return;
 
@@ -2080,7 +2083,8 @@ function App() {
 
               // 2. проверка за срещи
               const hasAppointments = appointments.some(
-                (a) => a.client?.id === clientId
+                // (a) => a.client?.id === clientId
+                (a) => a.client?.id === c.id && a.status !== "cancelled"
               );
 
               if (hasAppointments) {
