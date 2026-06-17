@@ -123,27 +123,17 @@ export class AppointmentsService {
         },
       });
 
-      // await this.prisma.therapistClient.upsert({
-      //   where: {
-      //     therapistId_clientId: {
-      //       therapistId: appointment.therapistId,
-      //       clientId: appointment.clientId,
-      //     },
-      //   },
-      //   update: {},
-      //   create: {
-      //     therapistId: appointment.therapistId,
-      //     clientId: appointment.clientId,
-      //   },
-      // });
+      const start = new Date(appointment.startTime);
 
-      const formattedDate = new Date(appointment.startTime).toLocaleDateString("bg-BG");
-      const formattedTime = new Date(appointment.startTime).toLocaleTimeString("bg-BG", {
+      const formattedDate = start.toLocaleDateString("bg-BG");
+      const formattedTime = start.toLocaleTimeString("bg-BG", {
         hour: "2-digit",
         minute: "2-digit",
       });
+
       const therapistName = `${therapist.firstName} ${therapist.lastName}`;
 
+      // ✅ СЪОБЩЕНИЕ (веднага)
       await this.prisma.message.create({
         data: {
           clientId: appointment.clientId,
@@ -154,13 +144,39 @@ export class AppointmentsService {
           type: 'appointment_created',
           content: `Имате среща с ${therapistName} на ${formattedDate} от ${formattedTime}`,
           sendAt: new Date(),
-          status: 'sent',
+          status: 'pending', // 🔥 важно → да мине през cron
         },
       });
 
-      // === AUTO REMINDERS START ===
-
-      // === AUTO REMINDERS END ===
+      // 🔥 AUTO REMINDERS
+      await this.prisma.message.createMany({
+        data: [
+          {
+            clientId: appointment.clientId,
+            therapistId: appointment.therapistId,
+            appointmentId: appointment.id,
+            type: 'reminder_72h', // 🔥
+            sendAt: new Date(start.getTime() - 72 * 60 * 60 * 1000),
+            status: 'pending',
+          },
+          {
+            clientId: appointment.clientId,
+            therapistId: appointment.therapistId,
+            appointmentId: appointment.id,
+            type: 'reminder_24h', // 🔥
+            sendAt: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+            status: 'pending',
+          },
+          {
+            clientId: appointment.clientId,
+            therapistId: appointment.therapistId,
+            appointmentId: appointment.id,
+            type: 'reminder_1h', // 🔥
+            sendAt: new Date(start.getTime() - 60 * 60 * 1000),
+            status: 'pending',
+          },
+        ],
+      });
 
       return appointment;
 
@@ -169,6 +185,7 @@ export class AppointmentsService {
       throw err;
     }
   }
+
 
   async findByDate(date: string, userId: number) {
     console.log("DATE REQUEST:", date);
@@ -246,6 +263,16 @@ export class AppointmentsService {
   }
 
   async findAll(userId: number) {
+
+    console.log(
+      "APPOINTMENTS:",
+      appointments.map(a => ({
+        id: a.id,
+        status: a.status,
+        cancelledBy: a.cancelledBy
+      }))
+    );
+
     const therapist = await this.prisma.therapist.findUnique({
       where: { userId },
       include: {
@@ -259,7 +286,7 @@ export class AppointmentsService {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         therapistId: therapist.id,
-        status: { not: 'cancelled' },
+        // status: { not: 'cancelled' },
       },
       include: {
         client: true,
@@ -281,17 +308,20 @@ export class AppointmentsService {
       }
     });
 
-    return appointments.filter(a => {
-      if (!a.seriesId) return true;
+    // return appointments.filter(a => {
+    //   if (!a.seriesId) return true;
 
-      if (!a.isException) {
-        return !exceptionMap.has(
-          new Date(a.startTime).toISOString()
-        );
-      }
+    //   if (!a.isException) {
+    //     return !exceptionMap.has(
+    //       new Date(a.startTime).toISOString()
+    //     );
+    //   }
 
-      return true;
-    });
+    //   return true;
+    // });
+
+    return appointments;
+
     // -------
 
   }
@@ -331,19 +361,72 @@ export class AppointmentsService {
 
   async updateStatus(
     id: number,
-    status: 'scheduled' | 'completed' | 'cancelled',
-    userId: number,
+    tokenOrStatus: any,
+    statusMaybe?: any,
+    reason?: string,
+    userIdMaybe?: number,
   ) {
-    const appointment = await this.findOne(id, userId);
+    // 🔥 Разграничаваме кой endpoint е извикан
+    let status: string;
+    let cancelledBy: 'client' | 'therapist' | null = null;
 
-    return this.prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { status },
+    if (typeof tokenOrStatus === 'string' && statusMaybe) {
+      // 👉 PUBLIC (client)
+      status = statusMaybe;
+
+      if (status === 'cancelled') {
+        cancelledBy = 'client';
+      }
+
+    } else {
+      // 👉 AUTH (therapist)
+      status = tokenOrStatus;
+
+      if (status === 'cancelled') {
+        cancelledBy = 'therapist';
+      }
+    }
+
+    console.log("UPDATE STATUS:", { id, status, cancelledBy });
+
+    // 🔥 update appointment
+    const updated = await this.prisma.appointment.update({
+      where: { id },
+      data: {
+        status,
+        ...(status === 'cancelled' && {
+          cancelledBy,
+          cancelledAt: new Date(),
+          cancelReason: reason || null, // 🔥 НОВО
+        }),
+      }
     });
+
+    // 🔥 ако е cancelled → спираме reminders
+    if (status === 'cancelled') {
+      await this.prisma.message.updateMany({
+        where: {
+          appointmentId: id,
+          status: { in: ['pending'] },
+        },
+        data: {
+          status: 'cancelled',
+        },
+      });
+    }
+
+    return updated;
   }
 
   async delete(id: number, userId: number) {
-    const appointment = await this.findOne(id, userId);
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true },
+    });
+
+    if (!appointment) {
+      throw new Error("Appointment not found");
+    }
 
     console.log("APPOINTMENT CANCELLED");
 
@@ -352,7 +435,7 @@ export class AppointmentsService {
       where: {
         appointmentId: appointment.id,
         status: {
-          in: ["sent", "pending"],
+          in: ["pending"], // 🔧 не пипаме вече изпратените
         },
       },
       data: {
@@ -360,16 +443,23 @@ export class AppointmentsService {
       },
     });
 
+    // 🔥 CANCEL (soft)
     return this.prisma.appointment.update({
       where: { id: appointment.id },
       data: {
         status: 'cancelled',
+        cancelledBy: 'client', // 🔥 НОВО
+        cancelledAt: new Date(), // 🔥 НОВО
       },
     });
   }
 
   async remove(id: number, userId: number) {
-    const appointment = await this.findOne(id, userId);
+    // const appointment = await this.findOne(id, userId);
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true },
+    });
 
     console.log("APPOINTMENT CANCELLED");
 
@@ -439,21 +529,6 @@ export class AppointmentsService {
       }
     }
 
-    // return this.prisma.appointment.findMany({
-    //   where,
-    //   include: {
-    //     client: true,
-    //     messages: true,
-    //     therapist: {
-    //       include: {
-    //         therapistClients: true,
-    //       },
-    //     },
-    //   },
-    //   orderBy: {
-    //     startTime: 'asc',
-    //   },
-    // });
     return this.prisma.appointment.findMany({
       where,
       include: {
@@ -463,6 +538,28 @@ export class AppointmentsService {
       },
       orderBy: {
         startTime: 'asc',
+      },
+    });
+  }
+
+  async markSeen(id: number, token: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException();
+    }
+
+    if (appointment.client.clientAccessToken !== token) {
+      throw new UnauthorizedException();
+    }
+
+    return this.prisma.appointment.update({
+      where: { id },
+      data: {
+        seenAt: new Date(),
       },
     });
   }

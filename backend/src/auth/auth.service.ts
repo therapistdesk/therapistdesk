@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -82,7 +83,7 @@ export class AuthService {
 
     if (therapist) {
       const name = `${therapist.firstName || ''} ${therapist.lastName || ''}`.trim() || email;
-      const token = Math.random().toString(36).substring(2, 12);
+      const token = randomUUID();
 
       await this.prisma.client.create({
         data: {

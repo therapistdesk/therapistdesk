@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Query,
   Post,
   Patch,
   Delete,
@@ -13,6 +14,7 @@ import {
 import { ClientsService } from './clients.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../auth/public.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('clients')
@@ -25,6 +27,12 @@ export class ClientsController {
   @Get()
   findAll(@Req() req) {
     return this.clientsService.findAll(req);
+  }
+
+  @Get('access')
+  @Public()
+  async access(@Query('token') token: string) {
+    return this.clientsService.getClientAccess(token);
   }
 
   @Post()

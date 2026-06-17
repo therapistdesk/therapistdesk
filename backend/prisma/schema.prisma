@@ -75,6 +75,10 @@ model Appointment {
   endTime       DateTime
   clientId      Int
   therapistId   Int
+  seenAt        DateTime?
+  cancelledBy   String?
+  cancelledAt   DateTime?
+  cancelReason  String?
   status        String           @default("scheduled")
   notes         String?
   remindersSent String?
@@ -130,6 +134,7 @@ model PushSubscription {
   p256dh   String
   auth     String
   client   Client @relation(fields: [clientId], references: [id])
+  @@unique([endpoint, clientId])
 }
 
 model RecurringSeries {

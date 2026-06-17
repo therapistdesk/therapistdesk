@@ -39,6 +39,9 @@ const PX_PER_MINUTE = 1;
 const DAY_START = WORK_START * 60;
 const DAY_END = WORK_END * 60 + WORK_END_MINUTE;
 
+const user = JSON.parse(localStorage.getItem("user"));
+const userRole = user?.role;
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // ===== HELPERS =====
@@ -639,7 +642,7 @@ function App() {
   const eventsByDay = useMemo(() => {
     return weekDays.map((day) => {
       const dayEvents = appointments
-        .filter((a) => a.status !== "cancelled") // 🔥 ТОВА Е FIX-а
+        // .filter((a) => a.status !== "cancelled") // 🔥 ТОВА Е FIX-а
         .filter((a) => {
           const aDate = new Date(a.startTime);
           const dDate = new Date(day);
@@ -1690,6 +1693,8 @@ function App() {
 
                   const top = (start - DAY_START) * PX_PER_MINUTE;
                   const height = (end - start) * PX_PER_MINUTE;
+                  console.log("TOP blocks:", top);
+                  console.log("HEIGHT blocks:", height);
 
                   return (
                     <div
@@ -1814,9 +1819,16 @@ function App() {
               {/* PREVIEW */}
 
               {events
-                .filter(a => a.status !== "cancelled") // 🔥 double safety
+                // .filter(a => {
+                //   if (userRole === "therapist") return true;
+                //   return a.status !== "cancelled";
+                // })
                 .map((a) => {
 
+                  if (a.status === "cancelled") {
+                    console.log("CANCELLED FOUND IN RENDER", a.id);
+                  }
+                  console.log("EVENT IN UI:", a);
                   // console.log("RENDER EVENT", a.id);        
 
                   const color = getClientColor(a.client?.id || 0);
@@ -1827,21 +1839,43 @@ function App() {
 
                   const minutes =
                     start.getHours() * 60 + start.getMinutes() - DAY_START;
-
-                  const top = minutes * PX_PER_MINUTE;
+                  const top = Math.max(0, minutes * PX_PER_MINUTE);
+                  console.log("TOP:", top);
+                  // const top = minutes * PX_PER_MINUTE;
                   // ---
-                  const height = (a.end - a.start) * PX_PER_MINUTE;
+                  // const height = (a.end - a.start) * PX_PER_MINUTE;
 
-                  const width = 100 / a.totalColumns;
-                  const left = a.column * width;
-                  const isRead = a.messages?.some(m => m.readAt);
+                  const end = new Date(a.endTime);
+
+                  const durationMinutes =
+                    (end.getTime() - start.getTime()) / 1000 / 60;
+
+                  const height = durationMinutes * PX_PER_MINUTE;
+                  console.log("HEIGHT:", height);
+
+                  // const width = 100 / a.totalColumns;
+                  // const left = a.column * width;
+
+                  const totalColumns = a.totalColumns || 1;
+                  const column = a.column || 0;
+
+                  console.log("COLUMNS:", a.totalColumns, a.column);
+
+                  const width = 100 / totalColumns;
+                  const left = column * width;
+
+                  // const isRead = a.messages?.some(m => m.readAt);
+                  // const isRead = !!a.seenAt;
+                  const isSeen = !!a.seenAt;
+                  const isCancelled = a.status === "cancelled";
+                  const isConfirmed = a.status === "confirmed";
 
                   return (
                     <div
                       key={a.id}
                       className="event-card"
                       draggable
-
+                      // title={a.cancelReason || ""}
                       onClick={(e) => {
                         e.stopPropagation(); // 🔥 ТОЧНО ТОВА
                       }}
@@ -1849,6 +1883,7 @@ function App() {
                       onMouseMove={(e) => e.stopPropagation()}
                       onMouseDown={(e) => {
                         // e.stopPropagation();
+                        setLongPressTriggered(false);
                         if (dragged && hoverY !== null) return;
                         const timer = setTimeout(() => {
                           setLongPressTriggered(true);
@@ -1856,6 +1891,24 @@ function App() {
                           setAppointmentMenu({
                             x: e.clientX,
                             y: e.clientY,
+                            appointment: a,
+                          });
+                        }, 500);
+
+                        setPressTimer(timer);
+                      }}
+
+                      onTouchStart={(e) => {
+                        setLongPressTriggered(false);
+
+                        const touch = e.touches[0];
+
+                        const timer = setTimeout(() => {
+                          setLongPressTriggered(true);
+
+                          setAppointmentMenu({
+                            x: touch.clientX,
+                            y: touch.clientY,
                             appointment: a,
                           });
                         }, 500);
@@ -1880,27 +1933,47 @@ function App() {
                         clearTimeout(pressTimer);
                       }}
 
+                      onTouchEnd={() => {
+                        clearTimeout(pressTimer);
+                      }}
+
                       onMouseLeave={() => {
                         clearTimeout(pressTimer);
                       }}
 
+                      // onClick={(e) => {
+                      //   // тук
+                      //   e.stopPropagation();
+
+                      //   if (longPressTriggered) {
+                      //     setLongPressTriggered(false);
+                      //     return;
+                      //   }
+
+                      //   setActiveAppointment(a);
+
+                      //   setAppointmentMenu({
+                      //     x: e.clientX,
+                      //     y: e.clientY,
+                      //     appointment: a,
+                      //   });
+                      // }}
+
                       onClick={(e) => {
-                        // тук
                         e.stopPropagation();
 
+                        // 🔥 ако е long press → НЕ правим click логика
                         if (longPressTriggered) {
                           setLongPressTriggered(false);
                           return;
                         }
 
-                        setActiveAppointment(a);
+                        // 🔥 ЗАТВАРЯМЕ менюто ако е отворено
+                        setAppointmentMenu(null);
 
-                        setAppointmentMenu({
-                          x: e.clientX,
-                          y: e.clientY,
-                          appointment: a,
-                        });
+                        setActiveAppointment(a);
                       }}
+                      // ----------------------------
 
                       onDragStart={(e) => handleDragStart(e, a)}
 
@@ -1943,6 +2016,8 @@ function App() {
                         // left: 4,
                         // right: 4,
 
+                        opacity: isCancelled ? 0.5 : 1,
+                        textDecoration: isCancelled ? "line-through" : "none",
                         boxSizing: "border-box",
                         background: "#fff",
                         borderLeft: `4px solid ${borderColor}`,
@@ -1953,6 +2028,8 @@ function App() {
                         cursor: dragged ? "grabbing" : "grab",
                         transition: "all 0.15s ease",
                         // pointerEvents: "none",
+                        opacity: isCancelled ? 0.5 : 1,
+                        textDecoration: isCancelled ? "line-through" : "none",
 
                         transform:
                           activeAppointment?.id === a.id ? "scale(1.02)" : "scale(1)",
@@ -1969,13 +2046,22 @@ function App() {
 
                       <div style={{ pointerEvents: "auto" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
                           <div style={{ fontWeight: 600, fontSize: 13 }}>
                             {a.client?.name}
-                            {/* {a.relation?.alias && ` (${a.relation.alias})`} */}
+                            {isCancelled && (
+                              <div style={{ fontSize: 10, color: "red" }}>
+                                cancelled
+                                {a.cancelReason && ` • ${a.cancelReason}`}
+                              </div>
+                            )}
                           </div>
 
                           <div>
-                            {isRead ? "✔" : "🔔"}
+                            {/* {isRead ? "✔" : "🔔"} */}
+                            {!isSeen && "🔔"}
+                            {isSeen && !isConfirmed && "👁"}
+                            {isConfirmed && "✔"}
                           </div>
 
                           {a.notes && (
@@ -1986,7 +2072,6 @@ function App() {
                                 cursor: "pointer",
                               }}
                               onClick={(e) => {
-                                // тук
                                 e.stopPropagation();
                                 navigate(`/appointments/${a.id}/notes`);
                               }}
@@ -1994,25 +2079,23 @@ function App() {
                               📝
                             </span>
                           )}
+
                         </div>
                       </div>
 
                       <div style={{ fontSize: 11, color: "#555" }}>
-                        {Math.floor(a.start / 60)
-                          .toString()
-                          .padStart(2, "0")}
-                        :
-                        {(a.start % 60).toString().padStart(2, "0")}
+                        {start.toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                         {" – "}
-                        {Math.floor(a.end / 60)
-                          .toString()
-                          .padStart(2, "0")}
-                        :
-                        {(a.end % 60).toString().padStart(2, "0")}
+                        {end.toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
 
                         {" • "}
-                        {Math.round(a.end - a.start)}m
-
+                        {Math.round((end - start) / 1000 / 60)}m
                       </div>
 
                     </div>
@@ -2197,6 +2280,32 @@ function App() {
           }}
           onMouseLeave={() => setAppointmentMenu(null)}
         >
+
+          {/* STATUS + REASON */}
+          {appointmentMenu.appointment.status === "cancelled" && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ color: "red", fontWeight: 600 }}>
+                ❌ Отменена среща
+              </div>
+
+              {appointmentMenu.appointment.cancelReason && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: "#333",
+                    fontSize: 13,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    maxWidth: 220,
+                  }}
+                >
+                  Причина: {appointmentMenu.appointment.cancelReason}
+                </div>
+              )}
+            </div>
+          )}
+
+
           {/* DELETE */}
           <div
             style={{ cursor: "pointer", color: "red" }}

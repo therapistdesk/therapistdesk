@@ -6,40 +6,44 @@ export class PushController {
     constructor(private prisma: PrismaService) { }
 
     @Post('subscribe')
-    async subscribe(@Body() body: any, @Req() req: any) {
-        const userId = 1; // тестово
+    async subscribe(@Body() body: any) {
+        const { token, subscription } = body;
 
-        const therapist = await this.prisma.therapist.findUnique({
-            where: { userId },
+        // 🔥 игнорирай празни заявки
+        if (!token || !subscription) {
+            console.log("SKIP INVALID SUBSCRIBE CALL");
+            return;
+        }
+
+        const client = await this.prisma.client.findUnique({
+            where: { clientAccessToken: token },
         });
 
-        if (!therapist) return { ok: false };
-
-        const clientId = body.clientId;
-
-        if (!clientId) {
-            console.log("NO CLIENT ID");
-            return { ok: false };
+        if (!client) {
+            console.log("CLIENT NOT FOUND");
+            return;
         }
-
-        if (!body?.endpoint || !body?.p256dh || !body?.auth) {
-            console.log("INVALID SUB DATA");
-            return { ok: false };
-        }
-
-        console.log("SAVING SUB FOR CLIENT:", clientId);
 
         await this.prisma.pushSubscription.upsert({
-            where: { endpoint: body.endpoint },
-            update: {},
+            where: {
+                endpoint_clientId: {
+                    endpoint: subscription.endpoint,
+                    clientId: client.id,
+                },
+            },
+            update: {
+                keys: subscription.keys,
+            },
             create: {
-                clientId: clientId,
-                endpoint: body.endpoint,
-                p256dh: body.p256dh,
-                auth: body.auth,
+                endpoint: subscription.endpoint,
+                keys: subscription.keys,
+                clientId: client.id,
             },
         });
 
+        console.log("SUBSCRIPTION SAVED");
+
         return { ok: true };
     }
+
 }

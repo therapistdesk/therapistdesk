@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ClientsPrismaService } from './clients.prisma.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ClientsService {
@@ -43,7 +44,7 @@ export class ClientsService {
 
 
   async createClient(dto: any, userId: number) {
-    const token = Math.random().toString(36).substring(2, 15);
+    const token = randomUUID();
 
     const therapist = await this.prisma.therapist.findUnique({
       where: { userId },
@@ -99,24 +100,96 @@ export class ClientsService {
       throw new Error('Unauthorized');
     }
 
-    await this.prisma.pushSubscription.deleteMany({
+    console.log("DELETE CLIENT:", id);
+
+    // 🔥 взимаме всички срещи
+    const appointments = await this.prisma.appointment.findMany({
       where: { clientId: id },
     });
+
+    if (appointments.length === 0) {
+      // ✔ няма срещи → трием
+      return this.prisma.client.delete({
+        where: { id },
+      });
+    }
+
+    const hasActive = appointments.some(a => a.status !== 'cancelled');
+
+    if (hasActive) {
+      throw new Error('Client has active appointments');
+    }
+
+    const hasClientCancelled = appointments.some(
+      a => a.status === 'cancelled' && a.cancelledBy === 'client'
+    );
+
+    if (hasClientCancelled) {
+      throw new Error('Client has cancelled appointments (by client)');
+    }
+
+    // ✔ тук значи: има САМО cancelled от therapist
 
     await this.prisma.appointment.deleteMany({
       where: { clientId: id },
     });
 
+    await this.prisma.pushSubscription.deleteMany({
+      where: { clientId: id },
+    });
+
+    await this.prisma.message.deleteMany({
+      where: { clientId: id },
+    });
 
     return this.prisma.client.delete({
-      where: {
-        id,
-        // therapistId: therapist.id,
-      },
+      where: { id },
     });
   }
 
+  async getClientAccess(token: string) {
+    if (!token) {
+      throw new BadRequestException('Token required');
+    }
 
+    const client = await this.prisma.client.findUnique({
+      where: { clientAccessToken: token }, // ✅ тук
+      include: {
+        appointments: {
+          orderBy: { startTime: 'asc' },
+        },
+      },
+    });
+
+    await this.prisma.appointment.updateMany({
+      where: {
+        clientId: client.id,
+        seenAt: null,
+      },
+      data: {
+        seenAt: new Date(),
+      },
+    });
+
+    const updatedClient = await this.prisma.client.findUnique({
+      where: { clientAccessToken: token },
+      include: {
+        appointments: {
+          orderBy: { startTime: 'asc' },
+        },
+      },
+    });
+
+    if (!client) {
+      throw new NotFoundException('Invalid token');
+    }
+
+    return {
+      id: client.id,
+      name: client.name,
+      appointments: client.appointments,
+    };
+  }
 
   async updateReminder(id: number, minutes: number, userId: number) {
     return this.prismaService.updateReminderOffsets(id, [minutes], userId);

@@ -13,13 +13,35 @@ self.addEventListener("activate", (event) => {
 });
 
 // FETCH (basic cache fallback)
+// self.addEventListener("fetch", (event) => {
+//   event.respondWith(
+//     caches.match(event.request).then((res) => {
+//       return res || fetch(event.request);
+//     })
+//   );
+// });
 self.addEventListener("fetch", (event) => {
+  const url = event.request.url;
+
+  // ❗ НЕ кеширай API
+  if (
+    url.includes("/clients") ||
+    url.includes("/appointments") ||
+    url.includes("/messages")
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // ✅ кеширай останалото (JS, CSS, images)
   event.respondWith(
     caches.match(event.request).then((res) => {
       return res || fetch(event.request);
     })
   );
 });
+
+
 
 // PUSH (запазваме го)
 self.addEventListener("push", function (event) {

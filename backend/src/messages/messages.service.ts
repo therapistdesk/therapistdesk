@@ -33,23 +33,36 @@ export class MessagesService {
     console.log('MARK COMPLETED DONE');
   }
 
-  @Cron('* * * * *')
+  @Cron('0 * * * * *')
   async processMessages() {
     console.log("CRON TICK");
 
     const now = new Date();
     console.log("NOW:", now);
 
-    const messages = await this.prisma.message.findMany({
-      where: {
-        status: 'pending',
-        sendAt: { lte: now },
-        appointmentId: { not: null }, // 🔒 защита
-      },
-      orderBy: {
-        sendAt: 'asc', // 🔧 по-логично (старите първо)
-      },
-    });
+    let messages = [];
+
+    try {
+      messages = await this.prisma.message.findMany({
+        where: {
+          status: 'pending',
+          sendAt: { lte: now },
+          appointmentId: { not: null },
+
+          // 🔥 НОВО
+          appointment: {
+            status: { not: 'cancelled' },
+          },
+        },
+        orderBy: {
+          sendAt: 'asc',
+        },
+      });
+    } catch (e) {
+      console.log("❌ DB CONNECTION LOST - SKIP THIS TICK");
+      console.log("SKIPPING CRON TICK DUE TO DB ERROR");
+      return; // 🔥 СПИРАМЕ текущия cron, чакаме следващия
+    }
 
     console.log("MESSAGES FOUND:", messages.length);
 
@@ -58,22 +71,27 @@ export class MessagesService {
 
       try {
         // 🔒 duplicate защита
-        const alreadySent = await this.prisma.message.findFirst({
-          where: {
-            appointmentId: msg.appointmentId,
-            sendAt: msg.sendAt,
-            status: 'sent',
-          },
-        });
+        // const alreadySent = await this.prisma.message.findFirst({
+        //   where: {
+        //     appointmentId: msg.appointmentId,
+        //     sendAt: msg.sendAt,
+        //     status: 'sent',
+        //   },
+        // });
 
-        if (alreadySent) {
-          console.log("SKIP DUPLICATE:", msg.id);
-          continue;
-        }
+        if (msg.status === 'sent') continue;
+
+        // if (alreadySent) {
+        //   console.log("SKIP DUPLICATE:", msg.id);
+        //   continue;
+        // }
 
         const appointment = await this.prisma.appointment.findUnique({
           where: { id: msg.appointmentId },
-          include: { client: true },
+          include: {
+            client: true,
+            therapist: true, // 🔥 маха още 1 заявка
+          },
         });
 
         if (!appointment || !appointment.client) {
@@ -82,9 +100,16 @@ export class MessagesService {
         }
 
         // 🔒 therapist
+        // const therapist = await this.prisma.therapist.findUnique({
+        //   where: { id: appointment.therapistId },
+        // });
         const therapist = await this.prisma.therapist.findUnique({
           where: { id: appointment.therapistId },
         });
+
+        const therapistName = therapist
+          ? `${therapist.firstName} ${therapist.lastName}`
+          : 'Вашият терапевт';
 
         // 🔧 стабилно форматиране
         const d = new Date(appointment.startTime);
@@ -94,10 +119,6 @@ export class MessagesService {
           hour: '2-digit',
           minute: '2-digit',
         });
-
-        const therapistName = therapist
-          ? `${therapist.firstName} ${therapist.lastName}`
-          : 'Вашият терапевт';
 
         const clientName = appointment.client?.name || '';
 
@@ -117,7 +138,8 @@ export class MessagesService {
           },
         };
 
-        console.log("PUSH PAYLOAD:", payload);
+        // console.log("PUSH PAYLOAD:", payload);
+        console.log("SENDING PUSH TO:", msg.clientId);
 
         // 🔥 PUSH
         await this.pushService.sendToClient(msg.clientId, payload);
