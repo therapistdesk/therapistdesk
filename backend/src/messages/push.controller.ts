@@ -32,12 +32,14 @@ export class PushController {
                 },
             },
             update: {
-                keys: subscription.keys,
+                endpoint: subscription.endpoint,
+                p256dh: subscription.keys.p256dh,
+                auth: subscription.keys.auth,
             },
             create: {
                 endpoint: subscription.endpoint,
-                keys: subscription.keys,
-                clientId: client.id,
+                p256dh: subscription.keys.p256dh,
+                auth: subscription.keys.auth,
             },
         });
 

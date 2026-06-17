@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ClientsPrismaService } from './clients.prisma.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'crypto';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ClientsService {

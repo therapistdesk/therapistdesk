@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../messages/push.service';
@@ -263,16 +264,6 @@ export class AppointmentsService {
   }
 
   async findAll(userId: number) {
-
-    console.log(
-      "APPOINTMENTS:",
-      appointments.map(a => ({
-        id: a.id,
-        status: a.status,
-        cancelledBy: a.cancelledBy
-      }))
-    );
-
     const therapist = await this.prisma.therapist.findUnique({
       where: { userId },
       include: {
@@ -295,6 +286,15 @@ export class AppointmentsService {
         startTime: 'asc'
       }
     });
+
+    console.log(
+      "APPOINTMENTS:",
+      appointments.map(a => ({
+        id: a.id,
+        status: a.status,
+        cancelledBy: a.cancelledBy
+      }))
+    );
 
     // 🔥 махаме оригиналите ако има exception
     const exceptionMap = new Map();
