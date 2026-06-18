@@ -1976,14 +1976,19 @@ function App() {
                       // ----------------------------
 
                       onTouchEnd={(e) => {
-                        // ако е било long press → не правим нищо
+                        clearTimeout(pressTimer);
+
+                        // 🔥 ако е било long press → спираме всичко
                         if (longPressTriggered) {
                           setLongPressTriggered(false);
                           return;
                         }
 
-                        setAppointmentMenu(null);
-                        setActiveAppointment(a);
+                        // 🔥 малко delay, за да не се засече с long press
+                        setTimeout(() => {
+                          setAppointmentMenu(null);
+                          setActiveAppointment(a);
+                        }, 50);
                       }}
 
                       onDragStart={(e) => handleDragStart(e, a)}
@@ -2291,6 +2296,8 @@ function App() {
           }}
           onMouseLeave={() => setAppointmentMenu(null)}
         >
+
+
 
           {/* STATUS + REASON */}
           {appointmentMenu.appointment.status === "cancelled" && (
