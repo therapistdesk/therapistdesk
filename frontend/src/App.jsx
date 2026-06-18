@@ -828,7 +828,10 @@ function App() {
 
     const data = await res.json();
 
-    if (data.access_token) {
+    // if (data.access_token) {
+    if (data.requiresVerification) {
+      alert("Verification required");
+    } else if (data.access_token) {
       localStorage.setItem("token", data.access_token);
 
       // ако ти трябва refresh token
