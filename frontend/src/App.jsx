@@ -1975,6 +1975,17 @@ function App() {
                       }}
                       // ----------------------------
 
+                      onTouchEnd={(e) => {
+                        // ако е било long press → не правим нищо
+                        if (longPressTriggered) {
+                          setLongPressTriggered(false);
+                          return;
+                        }
+
+                        setAppointmentMenu(null);
+                        setActiveAppointment(a);
+                      }}
+
                       onDragStart={(e) => handleDragStart(e, a)}
 
                       // onMouseEnter={(e) => {
