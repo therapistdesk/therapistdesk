@@ -2283,20 +2283,6 @@ function App() {
       )}
 
       {/* APPOINTMENT MENU */}
-      {/* {appointmentMenu && (
-        <div
-          style={{
-            position: "fixed",
-            top: appointmentMenu.y,
-            left: appointmentMenu.x,
-            background: "white",
-            border: "1px solid #ccc",
-            padding: 10,
-            zIndex: 9999,
-          }}
-          onMouseLeave={() => setAppointmentMenu(null)}
-        > */}
-
       {appointmentMenu && (
         <>
           {/* 🔥 BACKDROP */}
@@ -2310,6 +2296,7 @@ function App() {
               zIndex: 9998,
             }}
             onClick={() => setAppointmentMenu(null)}
+            // onTouchStart={() => setAppointmentMenu(null)}
             onTouchStart={(e) => {
               e.stopPropagation();
               setAppointmentMenu(null);
@@ -2328,8 +2315,6 @@ function App() {
               zIndex: 9999,
             }}
           >
-
-
 
             {/* STATUS + REASON */}
             {appointmentMenu.appointment.status === "cancelled" && (
@@ -2355,14 +2340,11 @@ function App() {
               </div>
             )}
 
-
             {/* DELETE */}
             <div
               style={{ cursor: "pointer", color: "red" }}
               onClick={async () => {
-                const confirmDelete = window.confirm(
-                  t("deleteAppointment", lang)
-                );
+                const confirmDelete = window.confirm("Delete?");
                 if (!confirmDelete) return;
 
                 await deleteAppointment(token, appointmentMenu.appointment.id);
@@ -2394,206 +2376,207 @@ function App() {
             </div>
 
           </div>
+        </>
       )}
 
-          {showAddClient && (
-            <div
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0,0,0,0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 9999,
+      {showAddClient && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: 20,
+              borderRadius: 8,
+              width: 300,
+            }}
+          >
+            <h3>Add Client</h3>
+
+            <input
+              placeholder="Name"
+              value={clientForm.name}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, name: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <input
+              placeholder="Phone"
+              value={clientForm.phone}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, phone: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <input
+              placeholder="Email"
+              value={clientForm.email}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, email: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <input
+              placeholder="Country"
+              value={clientForm.country}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, country: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <input
+              placeholder="City"
+              value={clientForm.city}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, city: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <textarea
+              placeholder="Notes"
+              value={clientForm.notes}
+              onChange={(e) =>
+                setClientForm({ ...clientForm, notes: e.target.value })
+              }
+            />
+
+            <br /><br />
+
+            <button
+              onClick={async () => {
+                if (!clientForm.name.trim()) return;
+
+                const token = localStorage.getItem("token");
+
+                const res = await fetch(`${API_URL}/clients`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify(clientForm),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                  alert(data.message || "Error");
+                  return;
+                }
+
+                const updated = await getClients(token);
+                setClients(updated);
+
+                setShowAddClient(false);
+
+                setClientForm({
+                  name: "",
+                  phone: "",
+                  email: "",
+                  country: "",
+                  city: "",
+                  notes: "",
+                });
               }}
             >
-              <div
-                style={{
-                  background: "white",
-                  padding: 20,
-                  borderRadius: 8,
-                  width: 300,
-                }}
-              >
-                <h3>Add Client</h3>
+              Save
+            </button>
 
-                <input
-                  placeholder="Name"
-                  value={clientForm.name}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, name: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <input
-                  placeholder="Phone"
-                  value={clientForm.phone}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, phone: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <input
-                  placeholder="Email"
-                  value={clientForm.email}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, email: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <input
-                  placeholder="Country"
-                  value={clientForm.country}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, country: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <input
-                  placeholder="City"
-                  value={clientForm.city}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, city: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <textarea
-                  placeholder="Notes"
-                  value={clientForm.notes}
-                  onChange={(e) =>
-                    setClientForm({ ...clientForm, notes: e.target.value })
-                  }
-                />
-
-                <br /><br />
-
-                <button
-                  onClick={async () => {
-                    if (!clientForm.name.trim()) return;
-
-                    const token = localStorage.getItem("token");
-
-                    const res = await fetch(`${API_URL}/clients`, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify(clientForm),
-                    });
-
-                    const data = await res.json();
-
-                    if (!res.ok) {
-                      alert(data.message || "Error");
-                      return;
-                    }
-
-                    const updated = await getClients(token);
-                    setClients(updated);
-
-                    setShowAddClient(false);
-
-                    setClientForm({
-                      name: "",
-                      phone: "",
-                      email: "",
-                      country: "",
-                      city: "",
-                      notes: "",
-                    });
-                  }}
-                >
-                  Save
-                </button>
-
-                <button
-                  onClick={() => setShowAddClient(false)}
-                  style={{ marginLeft: 10 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {showRecurring && (
-            <Modal
-              onClose={() => {
-                setShowRecurring(false);
-                setSelectedClient(null); // 🔥 зануляване
-              }}
+            <button
+              onClick={() => setShowAddClient(false)}
+              style={{ marginLeft: 10 }}
             >
-              <RecurringForm
-                onClose={() => {
-                  setShowRecurring(false);
-                  setSelectedClient(null); // 🔥 зануляване
-                }}
-                selectedClient={selectedClient}
-                therapist={{ id: 1 }}
-                duration={duration}
-                WORK_START={WORK_START}
-                WORK_END={WORK_END}
-                WORK_END_MINUTE={WORK_END_MINUTE}
-              />
-            </Modal>
-          )}
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
-          {qrClient && (
-            <div style={overlayStyle}>
-              <div style={modalStyle}>
+      {showRecurring && (
+        <Modal
+          onClose={() => {
+            setShowRecurring(false);
+            setSelectedClient(null); // 🔥 зануляване
+          }}
+        >
+          <RecurringForm
+            onClose={() => {
+              setShowRecurring(false);
+              setSelectedClient(null); // 🔥 зануляване
+            }}
+            selectedClient={selectedClient}
+            therapist={{ id: 1 }}
+            duration={duration}
+            WORK_START={WORK_START}
+            WORK_END={WORK_END}
+            WORK_END_MINUTE={WORK_END_MINUTE}
+          />
+        </Modal>
+      )}
 
-                <button
-                  onClick={() => setQrClient(null)}
-                  style={{ float: "right" }}
-                >
-                  ✖
-                </button>
+      {qrClient && (
+        <div style={overlayStyle}>
+          <div style={modalStyle}>
 
-                <ClientQR token={qrClient.clientAccessToken} />
+            <button
+              onClick={() => setQrClient(null)}
+              style={{ float: "right" }}
+            >
+              ✖
+            </button>
 
-              </div>
-            </div>
-          )}
+            <ClientQR token={qrClient.clientAccessToken} />
 
-        </>
-      );
+          </div>
+        </div>
+      )}
+
+    </>
+  );
 }
 
-      const overlayStyle = {
-        position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 9999,
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
 };
 
-      const modalStyle = {
-        background: "#fff",
-      padding: 20,
-      borderRadius: 10,
-      minWidth: 300,
+const modalStyle = {
+  background: "#fff",
+  padding: 20,
+  borderRadius: 10,
+  minWidth: 300,
 };
 
-      export default App;
+export default App;
 
 // ===== VERSION ..... END =====
