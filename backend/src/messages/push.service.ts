@@ -10,6 +10,7 @@ export class PushService {
 
   async sendToClient(clientId: number, payload: any) {
     console.log("SEND PUSH → clientId:", clientId);
+    console.log("PAYLOAD:", payload);
 
     // 🔥 Гарантирана инициализация всеки път
     const publicKey = process.env.VAPID_PUBLIC_KEY;

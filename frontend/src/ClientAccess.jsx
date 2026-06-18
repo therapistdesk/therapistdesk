@@ -1,5 +1,20 @@
 import { useEffect, useState } from "react";
 
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 export default function ClientAccess() {
     const [client, setClient] = useState(null);
 
@@ -33,6 +48,7 @@ export default function ClientAccess() {
     };
 
     const subscribeToPush = async () => {
+         console.log("SUBSCRIBE STARTED");
         try {
             const path = window.location.pathname;
             const match = path.match(/client-access\/(.+)/);
@@ -44,23 +60,35 @@ export default function ClientAccess() {
                 console.log("NO TOKEN IN FUNCTION");
                 return;
             }
-
-            if (!("serviceWorker" in navigator)) return;
+            console.log("STEP 0");
+            if (!("serviceWorker" in navigator)) {
+                console.log("NO SW");
+                return;
+            }
+            console.log("STEP 1");
 
             const reg = await navigator.serviceWorker.ready;
+            console.log("STEP 2");
 
             const existing = await reg.pushManager.getSubscription();
-            if (existing) return;
-
+            console.log("STEP 3", existing);
+            // if (existing) return;
+            if (existing) {
+                await existing.unsubscribe();
+            }
             const permission = await Notification.requestPermission();
+            console.log("STEP 4", permission);
             if (permission !== "granted") return;
 
             const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+            console.log("STEP 5", vapidKey);
 
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: vapidKey,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey),
             });
+
+            console.log("STEP 6", sub);
 
             await fetch(`${API_URL}/push/subscribe`, {
                 method: "POST",
@@ -80,11 +108,20 @@ export default function ClientAccess() {
         }
     };
 
+    // useEffect(() => {
+    //     const path = window.location.pathname;
+    //     const match = path.match(/client-access\/(.+)/);
+    //     const token = match ? match[1] : null;
+    //     console.log("TOKEN IN EFFECT:", token);
+    //     if (!token) return;
+    //     loadClient();
+    //     subscribeToPush();
+    // }, [token]);
+
     useEffect(() => {
-        if (!token) return;
-        loadClient();
-        subscribeToPush();
-    }, [token]);
+    console.log("FORCE SUBSCRIBE");
+    subscribeToPush();
+}, []);
 
     if (!client) return <div style={{ padding: 20 }}>Loading...</div>;
 

@@ -577,17 +577,67 @@ export class AppointmentsService {
     if (!appointment.seriesId) {
       const safeData: any = {};
 
+      const isRescheduled =
+        data.startTime &&
+        new Date(data.startTime).getTime() !==
+        new Date(appointment.startTime).getTime();
+
       if (data.startTime) safeData.startTime = new Date(data.startTime);
       if (data.endTime) safeData.endTime = new Date(data.endTime);
       if (data.clientId) safeData.clientId = data.clientId;
       if (data.therapistId) safeData.therapistId = data.therapistId;
       if (data.notes !== undefined) safeData.notes = data.notes;
 
-      return this.prisma.appointment.update({
+      // return this.prisma.appointment.update({
+      //   where: { id },
+      //   data: safeData,
+      //   include: { client: true },
+      // });
+
+      // return this.prisma.appointment.update({
+      //   where: { id },
+      //   data: {
+      //     ...safeData,
+
+      //     ...(isRescheduled && {
+      //       status: 'pending',
+      //       seenAt: null,
+      //     }),
+      //   },
+      //   include: { client: true },
+      // });
+      const updated = await this.prisma.appointment.update({
         where: { id },
-        data: safeData,
+        data: {
+          ...safeData,
+
+          ...(isRescheduled && {
+            status: 'pending',
+            seenAt: null,
+          }),
+        },
         include: { client: true },
       });
+      if (isRescheduled && updated.clientId) {
+        const d = new Date(updated.startTime);
+
+        const date = d.toLocaleDateString('bg-BG');
+        const time = d.toLocaleTimeString('bg-BG', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        console.log("RESCHEDULE PUSH TRIGGERED");
+        await this.pushService.sendToClient(updated.clientId, {
+          title: 'Промяна на среща',
+          body: `Срещата ви е променена\n${date} • ${time}`,
+          tag: `appointment-${updated.id}`,
+          data: {
+            appointmentId: updated.id,
+            url: `/appointments/${updated.id}`,
+          },
+        });
+      }
+      return updated;
     }
 
     // 👉 recurring → exception

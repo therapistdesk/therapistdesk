@@ -1152,7 +1152,7 @@ function App() {
                         y: e.clientY,
                         client: c,
                       });
-                    }, 500);
+                    }, 600);
 
                     setPressTimer(timer);
                   }}
@@ -1880,8 +1880,12 @@ function App() {
                         e.stopPropagation(); // 🔥 ТОЧНО ТОВА
                       }}
 
-                      onMouseMove={(e) => e.stopPropagation()}
+                      onMouseMove={(e) => {
+                        clearTimeout(pressTimer); // 🔥 КЛЮЧОВО
+                        e.stopPropagation();
+                      }}
                       onMouseDown={(e) => {
+                        if (dragged) return;
                         // e.stopPropagation();
                         setLongPressTriggered(false);
                         if (dragged && hoverY !== null) return;
@@ -1893,7 +1897,7 @@ function App() {
                             y: e.clientY,
                             appointment: a,
                           });
-                        }, 500);
+                        }, 600);
 
                         setPressTimer(timer);
                       }}
