@@ -276,6 +276,13 @@ function App() {
 
     // const subData = sub.toJSON();
 
+    const existing = await reg.pushManager.getSubscription();
+
+    if (existing) {
+      console.log("UNSUBSCRIBING OLD");
+      await existing.unsubscribe();
+    }
+
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub) {
