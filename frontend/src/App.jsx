@@ -261,20 +261,41 @@ function App() {
 
     console.log("STEP 4 - BEFORE SUBSCRIBE");
 
-    let sub;
-    try {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey,
-      });
-    } catch (e) {
-      console.log("SUBSCRIBE ERROR:", e);
-      return;
+    // let sub;
+    // try {
+    //   sub = await reg.pushManager.subscribe({
+    //     userVisibleOnly: true,
+    //     applicationServerKey: convertedKey,
+    //   });
+    // } catch (e) {
+    //   console.log("SUBSCRIBE ERROR:", e);
+    //   return;
+    // }
+
+    // console.log("STEP 5 - SUB:", sub);
+
+    // const subData = sub.toJSON();
+
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey,
+        });
+      } catch (e) {
+        console.log("SUBSCRIBE ERROR:", e);
+        return;
+      }
     }
 
-    console.log("STEP 5 - SUB:", sub);
+    const subData = sub?.toJSON();
 
-    const subData = sub.toJSON();
+    if (!subData || !subData.keys) {
+      console.log("INVALID SUB DATA", subData);
+      return;
+    }
 
     const res = await fetch(`${API_URL}/push/subscribe`, {
       method: 'POST',
