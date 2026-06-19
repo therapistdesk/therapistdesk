@@ -983,13 +983,17 @@ function App() {
     );
   }
 
-  if (location.pathname.includes("/notes")) {
-    return (
-      <Routes>
-        <Route path="/appointments/:id/notes" element={<NotePage />} />
-      </Routes>
-    );
-  }
+  // if (location.pathname.includes("/notes")) {
+  //   return (
+  //     <Routes>
+  //       <Route path="/appointments/:id/notes" element={<NotePage />} />
+  //     </Routes>
+  //   );
+  // }
+  <Routes>
+    <Route path="/appointments/:id/notes" element={<NotePage />} />
+    <Route path="/client-access/:id" element={<ClientAccess />} />
+  </Routes>
 
   console.log("CLIENTS:", clients);
 
