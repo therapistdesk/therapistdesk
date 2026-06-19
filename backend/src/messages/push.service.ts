@@ -23,10 +23,15 @@ export class PushService {
       return;
     }
 
+    // webpush.setVapidDetails(
+    //   process.env.VAPID_SUBJECT || 'mailto:test@test.com',
+    //   publicKey,
+    //   privateKey,
+    // );
     webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:test@test.com',
-      publicKey,
-      privateKey,
+      'mailto:test@test.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
     );
 
     const subs = await this.prisma.pushSubscription.findMany({
