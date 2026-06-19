@@ -256,10 +256,9 @@ function App() {
 
     if (permission !== 'granted') return;
 
-    // const vapidKey = 'BIG1WJJIFMKKgf4IgGTdAlkQyEdYKriGLbWZC25MELTduDwnuq8POrgtZ2vCSIyLjLhdWhn3RKzOPdX3T6xoWyY';
     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
     const convertedKey = urlBase64ToUint8Array(vapidKey);
-
+console.log("VAPID KEY:", vapidKey);
     console.log("STEP 4 - BEFORE SUBSCRIBE");
 
     // let sub;

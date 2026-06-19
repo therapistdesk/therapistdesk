@@ -41,7 +41,8 @@ export default function ClientAccess() {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     const loadClient = async () => {
-        const res = await fetch(`${API_URL}/clients/access?token=${token}`);
+        const res = await fetch(`${API_URL}/clients/access/${token}`);
+        console.log("CALLING:", `${API_URL}/client/access/${token}`);
         if (!res.ok) return;
         const data = await res.json();
         setClient(data);
