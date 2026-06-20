@@ -98,4 +98,22 @@ export class MessagesController {
     });
   }
 
+  @Get('access/:token/appointments')
+  async getAppointmentsByToken(@Param('token') token: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { clientAccessToken: token },
+    });
+
+    if (!client) return [];
+
+    return this.prisma.appointment.findMany({
+      where: {
+        clientId: client.id,
+      },
+      orderBy: {
+        start: 'asc',
+      },
+    });
+  }
+
 }
