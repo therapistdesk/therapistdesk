@@ -104,6 +104,19 @@ export class MessagesController {
       where: { clientAccessToken: token },
     });
 
+    // ------------------------------------------
+    console.log("TOKEN:", token);
+    console.log("CLIENT:", client);
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        clientId: client.id,
+      },
+    });
+
+    console.log("APPOINTMENTS:", appointments);
+    // --------------------------------------------------
+
     if (!client) return [];
 
     return this.prisma.appointment.findMany({
