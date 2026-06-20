@@ -139,8 +139,10 @@ export default function ClientAccess() {
     const appointments = Object.values(
         Object.fromEntries(appointmentsRaw.map(a => [a.id, a]))
     );
-    
+
     const now = new Date();
+    // зануляваме секундите за стабилност
+    now.setSeconds(0, 0);
 
     const isToday = (date) => {
         const d = new Date(date);
@@ -154,7 +156,13 @@ export default function ClientAccess() {
         return d.toDateString() === tomorrow.toDateString();
     };
 
-    const getStart = (a) => new Date(a.startTime);
+    // const getStart = (a) => new Date(a.startTime);
+    const getStart = (a) => {
+        const d = new Date(a.startTime);
+
+        // FIX timezone drift
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    };
 
     const today = appointments.filter((a) => isToday(getStart(a)));
     const tomorrow = appointments.filter((a) => isTomorrow(getStart(a)));
@@ -164,7 +172,10 @@ export default function ClientAccess() {
             !isToday(getStart(a)) &&
             !isTomorrow(getStart(a))
     );
-    const past = appointments.filter((a) => getStart(a) < now);
+    // const past = appointments.filter((a) => getStart(a) < now);
+    const past = appointments.filter(
+        (a) => getStart(a) < now && a.status !== "scheduled"
+    );
 
     const renderSection = (title, data) => {
         if (data.length === 0) return null;
