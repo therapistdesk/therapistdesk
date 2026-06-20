@@ -111,7 +111,7 @@ export class MessagesController {
         clientId: client.id,
       },
       orderBy: {
-        start: 'asc',
+        startTime: 'asc',
       },
     });
   }
