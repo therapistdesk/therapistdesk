@@ -42,14 +42,20 @@ export default function ClientAccess() {
 
     const loadClient = async () => {
         const res = await fetch(`${API_URL}/clients/access/${token}`);
-        console.log("CALLING:", `${API_URL}/client/access/${token}`);
+        console.log("CALLING:", `${API_URL}/clients/access/${token}`);
         if (!res.ok) return;
         const data = await res.json();
+        console.log("DATA:", data);
         setClient(data);
     };
 
+    useEffect(() => {
+        if (!token) return;
+        loadClient();
+    }, [token]);
+
     const subscribeToPush = async () => {
-         console.log("SUBSCRIBE STARTED");
+        console.log("SUBSCRIBE STARTED");
         try {
             const path = window.location.pathname;
             const match = path.match(/client-access\/(.+)/);
@@ -120,9 +126,9 @@ export default function ClientAccess() {
     // }, [token]);
 
     useEffect(() => {
-    console.log("FORCE SUBSCRIBE");
-    subscribeToPush();
-}, []);
+        console.log("FORCE SUBSCRIBE");
+        subscribeToPush();
+    }, []);
 
     if (!client) return <div style={{ padding: 20 }}>Loading...</div>;
 
