@@ -133,8 +133,13 @@ export default function ClientAccess() {
     if (!client) return <div style={{ padding: 20 }}>Loading...</div>;
 
     // const appointments = client.appointments || [];
-    const appointments = client || [];
+    // const appointments = client || [];
 
+    const appointmentsRaw = client || [];
+    const appointments = Object.values(
+        Object.fromEntries(appointmentsRaw.map(a => [a.id, a]))
+    );
+    
     const now = new Date();
 
     const isToday = (date) => {
