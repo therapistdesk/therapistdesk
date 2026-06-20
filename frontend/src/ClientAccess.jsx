@@ -132,7 +132,9 @@ export default function ClientAccess() {
 
     if (!client) return <div style={{ padding: 20 }}>Loading...</div>;
 
-    const appointments = client.appointments || [];
+    // const appointments = client.appointments || [];
+    const appointments = client || [];
+
     const now = new Date();
 
     const isToday = (date) => {
