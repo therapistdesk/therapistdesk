@@ -17,6 +17,8 @@ function urlBase64ToUint8Array(base64String) {
 
 export default function ClientAccess() {
     const [client, setClient] = useState(null);
+    const [clientInfo, setClientInfo] = useState(null);
+    // console.log("CLIENT:", client);
 
     // const path = window.location.pathname;
     // // const token = path.split("/client-access/")[1];
@@ -44,14 +46,42 @@ export default function ClientAccess() {
         const res = await fetch(`${API_URL}/messages/access/${token}/appointments`);
         console.log("CALLING:", `${API_URL}/messages/access/${token}/appointments`);
         if (!res.ok) return;
-        const data = await res.json();
+
+        const text = await res.text();
+        if (!text) return;
+
+        const data = JSON.parse(text);
         console.log("DATA:", data);
         setClient(data);
     };
 
     useEffect(() => {
         if (!token) return;
+
         loadClient();
+
+        const interval = setInterval(() => {
+            loadClient();
+        }, 30000); // на всеки 30 сек.
+
+        return () => clearInterval(interval);
+    }, [token]);
+
+    useEffect(() => {
+        if (!token) return;
+
+        const loadClientInfo = async () => {
+            const res = await fetch(`${API_URL}/messages/client/${token}`);
+            if (!res.ok) return;
+
+            const text = await res.text();
+            if (!text) return;
+
+            const data = JSON.parse(text);
+            setClientInfo(data);
+        };
+
+        loadClientInfo();
     }, [token]);
 
     const subscribeToPush = async () => {
@@ -190,9 +220,23 @@ export default function ClientAccess() {
                 }
             );
 
-            if (!res.ok) throw new Error();
+            // if (!res.ok) throw new Error();
+            if (!res.ok) {
+                console.log(await res.text());
+                throw new Error();
+            }
+
+            await fetch(
+                `${API_URL}/appointments/${id}/seen?token=${token}`,
+                {
+                    method: "PATCH",
+                }
+            );
+
             await loadClient();
         };
+        console.log("RAW EVENTS:", data);
+
 
         return (
             <div style={{ marginBottom: 24 }}>
@@ -204,121 +248,154 @@ export default function ClientAccess() {
                         if (a.seenAt && !b.seenAt) return 1;
                         return new Date(a.startTime) - new Date(b.startTime);
                     })
-                    .map((a) => (
-                        <div
-                            key={a.id}
-                            style={{
-                                border: "1px solid #e5e7eb",
-                                padding: 16,
-                                marginBottom: 12,
-                                borderRadius: 12,
-                                background: "#fff",
-                                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                                opacity: a.seenAt ? 0.6 : 1,
-                            }}
-                        >
-                            {!a.seenAt && (
+                    .map((a) => {
+                        console.log("EVENT:", a.id, a.status, a.cancelledBy);
+                        const isScheduled = a.status === "scheduled";
+                        const isCancelled = a.status === "cancelled";
+
+                        const isTherapistCancelled =
+                            a.status === "cancelled" && a.cancelledBy !== "client";
+
+                        const isClientCancelled =
+                            isCancelled && a.cancelledBy === "client";
+                        // console.log("APPOINTMENT:", a);
+                        return (
+                            <div
+                                key={a.id}
+                                style={{
+                                    border: "1px solid #e5e7eb",
+                                    padding: 16,
+                                    marginBottom: 12,
+                                    borderRadius: 12,
+                                    background: "#fff",
+                                    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                                    opacity: a.seenAt ? 0.6 : 1,
+                                }}
+                            >
+
+                                {/* 🔥 НОВО САМО АКО НЕ Е ВИДЯНА И НЕ Е CANCELLED */}
+                                {!a.seenAt && !isCancelled && (
+                                    <div style={{
+                                        fontSize: 12,
+                                        color: "#2563eb",
+                                        fontWeight: 600,
+                                        marginBottom: 6
+                                    }}>
+                                        ● НОВО
+                                    </div>
+                                )}
+
+                                <div style={{ fontSize: 16, fontWeight: 500 }}>
+                                    Среща с {client.therapistName || "вашия терапевт"}
+                                </div>
+
+                                <div style={{ fontSize: 14, color: "#555" }}>
+                                    {new Date(a.startTime).toLocaleString()}
+                                </div>
+
                                 <div style={{
                                     fontSize: 12,
-                                    color: "#2563eb",
-                                    fontWeight: 600,
-                                    marginBottom: 6
+                                    fontWeight: 500,
+                                    marginTop: 6,
+                                    color:
+                                        isScheduled
+                                            ? "#16a34a"
+                                            : isCancelled
+                                                ? "#dc2626"
+                                                : "#6b7280"
                                 }}>
-                                    ● НОВО
+                                    {isScheduled && "Насрочена"}
+                                    {isCancelled && "Отменена"}
                                 </div>
-                            )}
 
-                            <div style={{ fontSize: 16, fontWeight: 500 }}>
-                                Среща с {client.therapistName || "вашия терапевт"}
-                            </div>
+                                {a.cancelReason && (
+                                    <div style={{
+                                        fontSize: 13,
+                                        marginTop: 8,
+                                        padding: 8,
+                                        background: "#f9fafb",
+                                        borderRadius: 8
+                                    }}>
+                                        <strong>Причина:</strong> {a.cancelReason}
+                                    </div>
+                                )}
 
-                            <div style={{ fontSize: 14, color: "#555" }}>
-                                {new Date(a.startTime).toLocaleString()}
-                            </div>
+                                {/* 🔥 БУТОНИ */}
+                                <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
 
-                            <div style={{
-                                fontSize: 12,
-                                fontWeight: 500,
-                                marginTop: 6,
-                                color:
-                                    a.status === "confirmed"
-                                        ? "#16a34a"
-                                        : a.status === "cancelled"
-                                            ? "#dc2626"
-                                            : "#6b7280"
-                            }}>
-                                {a.status === "scheduled" && "Насрочена"}
-                                {a.status === "confirmed" && "Потвърдена"}
-                                {a.status === "cancelled" && "Отменена"}
-                            </div>
+                                    {/* 🔒 ако терапевт е отменил → няма бутони */}
+                                    {!isTherapistCancelled && (
+                                        <>
+                                            {/* ✅ Потвърждавам (ако НЕ е scheduled) */}
+                                            {!isScheduled && !isTherapistCancelled && (
+                                                <button
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: "10px 12px",
+                                                        borderRadius: 8,
+                                                        border: "none",
+                                                        background: "#16a34a",
+                                                        color: "#fff",
+                                                        fontWeight: 500,
+                                                        cursor: "pointer"
+                                                    }}
+                                                    onClick={async () => {
+                                                        try {
+                                                            await updateStatus(a.id, "confirmed");
+                                                        } catch {
+                                                            alert("Грешка");
+                                                        }
+                                                    }}
+                                                >
+                                                    Потвърждавам
+                                                </button>
+                                            )}
 
-                            {a.cancelReason && (
-                                <div style={{
-                                    fontSize: 13,
-                                    marginTop: 8,
-                                    padding: 8,
-                                    background: "#f9fafb",
-                                    borderRadius: 8
-                                }}>
-                                    <strong>Причина:</strong> {a.cancelReason}
+                                            {/* ❌ Отменям (ако НЕ е отменена от клиента) */}
+                                            {!isClientCancelled && !isTherapistCancelled && (
+                                                <button
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: "10px 12px",
+                                                        borderRadius: 8,
+                                                        border: "none",
+                                                        background: "#dc2626",
+                                                        color: "#fff",
+                                                        fontWeight: 500,
+                                                        cursor: "pointer"
+                                                    }}
+                                                    onClick={async () => {
+                                                        const reason = prompt("Причина за отмяна:");
+                                                        if (reason === null) return;
+
+                                                        if (reason.trim() === "") {
+                                                            alert("Моля, въведете причина");
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            await updateStatus(a.id, "cancelled", reason);
+                                                        } catch {
+                                                            alert("Грешка");
+                                                        }
+                                                    }}
+                                                >
+                                                    Отменям
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+
                                 </div>
-                            )}
 
-                            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-                                <button
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px 12px",
-                                        borderRadius: 8,
-                                        border: "none",
-                                        background: "#16a34a",
-                                        color: "#fff",
-                                        fontWeight: 500,
-                                        cursor: "pointer"
-                                    }}
-                                    onClick={async () => {
-                                        try {
-                                            await updateStatus(a.id, "confirmed");
-                                        } catch {
-                                            alert("Грешка");
-                                        }
-                                    }}
-                                >
-                                    Потвърждавам
-                                </button>
+                                {/* 🔴 статус текст */}
+                                {a.status === "cancelled" && a.cancelledBy === "therapist" && (
+                                    <div>Отменена от терапевт</div>
+                                )}
 
-                                <button
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px 12px",
-                                        borderRadius: 8,
-                                        border: "none",
-                                        background: "#dc2626",
-                                        color: "#fff",
-                                        fontWeight: 500,
-                                        cursor: "pointer"
-                                    }}
-                                    onClick={async () => {
-                                        const reason = prompt("Причина за отмяна:");
-                                        if (reason === null) return;
-
-                                        if (reason.trim() === "") {
-                                            alert("Моля, въведете причина");
-                                            return;
-                                        }
-
-                                        try {
-                                            await updateStatus(a.id, "cancelled", reason);
-                                        } catch {
-                                            alert("Грешка");
-                                        }
-                                    }}
-                                >
-                                    Отменям
-                                </button>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
             </div>
         );
     };
@@ -331,8 +408,19 @@ export default function ClientAccess() {
             background: "#f3f4f6",
             minHeight: "100vh"
         }}>
-            <h2 style={{ marginBottom: 20 }}>{client.name}</h2>
 
+            <div style={{
+                fontSize: 22,
+                fontWeight: 700,
+                marginBottom: 20
+            }}>
+                TherapistDesk
+            </div>
+
+            {/* <h2 style={{ marginBottom: 20 }}>{client.name}</h2> */}
+            <h2 style={{ marginBottom: 20 }}>
+                Здравей, {clientInfo?.name}
+            </h2>
             {appointments.length === 0 && <div>Няма срещи</div>}
 
             {renderSection("Днес", today)}

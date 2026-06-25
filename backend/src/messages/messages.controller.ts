@@ -56,7 +56,7 @@ export class MessagesController {
     });
   }
 
-  @Get('client/:id')
+  @Get('messages/:id')
   async getClientMessages(@Param('id') id: string) {
     return this.prisma.message.findMany({
       where: {
@@ -98,28 +98,32 @@ export class MessagesController {
     });
   }
 
+  @Get('client/:token')
+  async getClient(@Param('token') token: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { clientAccessToken: token },
+      select: {
+        id: true,
+        name: true,
+      }
+    });
+
+    return client;
+  }
+
   @Get('access/:token/appointments')
   async getAppointmentsByToken(@Param('token') token: string) {
+
     const client = await this.prisma.client.findUnique({
       where: { clientAccessToken: token },
     });
 
-    // ------------------------------------------
     console.log("TOKEN:", token);
     console.log("CLIENT:", client);
 
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        clientId: client.id,
-      },
-    });
-
-    console.log("APPOINTMENTS:", appointments);
-    // --------------------------------------------------
-
     if (!client) return [];
 
-    return this.prisma.appointment.findMany({
+    const appointments = await this.prisma.appointment.findMany({
       where: {
         clientId: client.id,
       },
@@ -127,6 +131,10 @@ export class MessagesController {
         startTime: 'asc',
       },
     });
+
+    console.log("APPOINTMENTS:", appointments);
+
+    return appointments;
   }
 
 }

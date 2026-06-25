@@ -12,28 +12,24 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// FETCH (basic cache fallback)
-// self.addEventListener("fetch", (event) => {
-//   event.respondWith(
-//     caches.match(event.request).then((res) => {
-//       return res || fetch(event.request);
-//     })
-//   );
-// });
 self.addEventListener("fetch", (event) => {
-  const url = event.request.url;
+  const url = new URL(event.request.url);
 
-  // ❗ НЕ кеширай API
-  if (
-    url.includes("/clients") ||
-    url.includes("/appointments") ||
-    url.includes("/messages")
-  ) {
+  // ❗ всички API заявки
+  // if (url.pathname.startsWith("/auth") ||
+  //     url.pathname.startsWith("/clients") ||
+  //     url.pathname.startsWith("/appointments") ||
+  //     url.pathname.startsWith("/messages")) {
+  //   event.respondWith(fetch(event.request));
+  //   return;
+  // }
+  if (url.pathname.startsWith("/")) {
+    // 👉 всички API заявки → директно към network
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // ✅ кеширай останалото (JS, CSS, images)
+  // ✅ само static assets
   event.respondWith(
     caches.match(event.request).then((res) => {
       return res || fetch(event.request);

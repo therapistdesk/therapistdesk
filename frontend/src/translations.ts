@@ -2,7 +2,7 @@ export const translations = {
   bg: {
     confirmDeleteClient: "Сигурен ли си, че искаш да изтриеш този клиент?",
     clientHasAppointments: "Този клиент има срещи. Първо ги изтрий ръчно.",
-    deleteAppointment: "Изтриване на срещата?",
+    deleteAppointment: "Сигурни ли сте, че искате да отмените срещата?",
     enterClientName: "Име на клиент",
     searchClient: "Търси клиент...",
     duration: "Продължителност",
@@ -17,7 +17,7 @@ blockConflict: "Има срещи в този период. Първо ги пр
   en: {
     confirmDeleteClient: "Are you sure you want to delete this client?",
     clientHasAppointments: "This client has appointments. Delete them first.",
-    deleteAppointment: "Delete this appointment?",
+    deleteAppointment: "Are you sure you want to cancel the meeting?",
     enterClientName: "Client name",
     searchClient: "Search client...",
     duration: "Duration",

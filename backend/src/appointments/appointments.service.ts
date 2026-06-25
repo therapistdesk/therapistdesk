@@ -116,7 +116,7 @@ export class AppointmentsService {
           endTime: new Date(dto.endTime),
           clientId: Number(dto.clientId),
           therapistId: therapist.id,
-          status: 'scheduled',
+          status: 'pending',
           notes: dto.notes ?? null,
         },
         include: {
@@ -238,7 +238,7 @@ export class AppointmentsService {
           clientId,
           therapistId: userId,
           seriesId: series.id,
-          status: 'scheduled'
+          status: 'pending'
         }
       });
 
@@ -366,43 +366,77 @@ export class AppointmentsService {
     reason?: string,
     userIdMaybe?: number,
   ) {
-    // 🔥 Разграничаваме кой endpoint е извикан
+
+    console.log("RAW INPUT:", {
+      tokenOrStatus,
+      statusMaybe,
+      reason,
+      userIdMaybe,
+    });
+
+    // ✅ ясен boolean
+    // const isClientCall = typeof statusMaybe === 'string';
+    const isClientCall = !userIdMaybe;
+
     let status: string;
     let cancelledBy: 'client' | 'therapist' | null = null;
 
-    if (typeof tokenOrStatus === 'string' && statusMaybe) {
-      // 👉 PUBLIC (client)
-      status = statusMaybe;
-
-      if (status === 'cancelled') {
-        cancelledBy = 'client';
-      }
-
+    if (isClientCall) {
+      status = statusMaybe === 'confirmed' ? 'scheduled' : statusMaybe;
+      cancelledBy = status === 'cancelled' ? 'client' : null;
     } else {
-      // 👉 AUTH (therapist)
       status = tokenOrStatus;
-
-      if (status === 'cancelled') {
-        cancelledBy = 'therapist';
-      }
+      cancelledBy = status === 'cancelled' ? 'therapist' : null;
     }
 
-    console.log("UPDATE STATUS:", { id, status, cancelledBy });
+    // 🔍 лог 1: вход
+    console.log("UPDATE INPUT:", {
+      id,
+      isClientCall,
+      status,
+      cancelledBy,
+    });
 
-    // 🔥 update appointment
+    const existing = await this.prisma.appointment.findUnique({
+      where: { id },
+    });
+
+    // 🔍 лог 2: какво има в DB преди update
+    console.log("BEFORE UPDATE:", {
+      id,
+      existingStatus: existing?.status,
+      existingCancelledBy: existing?.cancelledBy,
+    });
+
+    // ❗ защита
+    if (
+      existing?.cancelledBy === 'therapist' &&
+      typeof tokenOrStatus === 'string'
+    ) {
+      throw new Error("Forbidden");
+    }
+
     const updated = await this.prisma.appointment.update({
       where: { id },
       data: {
         status,
-        ...(status === 'cancelled' && {
-          cancelledBy,
-          cancelledAt: new Date(),
-          cancelReason: reason || null, // 🔥 НОВО
-        }),
-      }
+        cancelledBy,
+        cancelledAt: status === 'cancelled' ? new Date() : null,
+        cancelReason:
+          status === 'cancelled' && isClientCall
+            ? reason || null
+            : null,
+      },
     });
 
-    // 🔥 ако е cancelled → спираме reminders
+    // 🔍 лог 3: резултат след update
+    console.log("AFTER UPDATE:", {
+      id: updated.id,
+      status: updated.status,
+      cancelledBy: updated.cancelledBy,
+    });
+
+    // 🔥 стоп на reminders
     if (status === 'cancelled') {
       await this.prisma.message.updateMany({
         where: {
@@ -588,24 +622,6 @@ export class AppointmentsService {
       if (data.therapistId) safeData.therapistId = data.therapistId;
       if (data.notes !== undefined) safeData.notes = data.notes;
 
-      // return this.prisma.appointment.update({
-      //   where: { id },
-      //   data: safeData,
-      //   include: { client: true },
-      // });
-
-      // return this.prisma.appointment.update({
-      //   where: { id },
-      //   data: {
-      //     ...safeData,
-
-      //     ...(isRescheduled && {
-      //       status: 'pending',
-      //       seenAt: null,
-      //     }),
-      //   },
-      //   include: { client: true },
-      // });
       const updated = await this.prisma.appointment.update({
         where: { id },
         data: {
@@ -614,10 +630,15 @@ export class AppointmentsService {
           ...(isRescheduled && {
             status: 'pending',
             seenAt: null,
+
+            cancelledBy: null,
+            cancelledAt: null,
+            cancelReason: null,
           }),
         },
         include: { client: true },
       });
+
       if (isRescheduled && updated.clientId) {
         const d = new Date(updated.startTime);
 
@@ -658,7 +679,7 @@ export class AppointmentsService {
 
         originalDate: original.startTime,
         isException: true,
-        status: 'scheduled',
+        status: 'pending',
 
         notes: data.notes ?? original.notes,
       },

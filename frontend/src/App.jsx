@@ -258,7 +258,7 @@ function App() {
 
     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
     const convertedKey = urlBase64ToUint8Array(vapidKey);
-console.log("VAPID KEY:", vapidKey);
+    console.log("VAPID KEY:", vapidKey);
     console.log("STEP 4 - BEFORE SUBSCRIBE");
 
     // let sub;
@@ -662,7 +662,14 @@ console.log("VAPID KEY:", vapidKey);
 
   useEffect(() => {
     if (!token) return;
+
     reloadAppointments();
+
+    const interval = setInterval(() => {
+      reloadAppointments();
+    }, 30000); // на 30 секунди 
+
+    return () => clearInterval(interval);
   }, [startOfWeek, token]);
 
   // ---------------------------
@@ -975,38 +982,118 @@ console.log("VAPID KEY:", vapidKey);
 
     return (
       <div style={{ padding: 40 }}>
-        <h2>Login</h2>
+        <h1>TherapistDesk</h1>
 
-        <input
+        <div
+          style={{
+            fontSize: 18,
+            color: "#666",
+            marginBottom: 24,
+          }}
+        >
+          Вход за терапевти
+        </div>
+
+        {/* <input
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-        />
+        /> */}
+        <div
+          style={{
+            width: "100%",
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 14,
+              marginBottom: 6,
+              fontWeight: 500,
+            }}
+          >
+            E-mail
+          </div>
 
-        <br /><br />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+          />
+        </div>
 
-        <input
+        {/* <br /><br /> */}
+
+        {/* <input
           placeholder="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-        />
+        /> */}
+        <div
+          style={{
+            width: "100%",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 14,
+              marginBottom: 6,
+              fontWeight: 500,
+            }}
+          >
+            Парола
+          </div>
 
-        <br /><br />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Въведете парола"
+          />
+        </div>
+
+        {/* <br /><br /> */}
 
         <button onClick={handleLogin}>Login</button>
 
-        <br /><br />
+        {/* <br /><br /> */}
 
-        <button onClick={handleForgotPassword}>
-          Forgot password?
-        </button>
+        <div
+          onClick={handleForgotPassword}
+          style={{
+            marginTop: 16,
+            textAlign: "center",
+            color: "#2563eb",
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          Забравена парола?
+        </div>
 
-        <br /><br />
+        {/* <br /><br /> */}
 
-        <button onClick={() => setMode("register")}>
-          Register
-        </button>
+        <div
+          style={{
+            marginTop: 20,
+            textAlign: "center",
+            fontSize: 14,
+          }}
+        >
+          Нямате акаунт?{" "}
+          <span
+            onClick={() => setMode("register")}
+            style={{
+              color: "#2563eb",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Регистрация
+          </span>
+        </div>
       </div>
     );
   }
@@ -1223,9 +1310,7 @@ console.log("VAPID KEY:", vapidKey);
                     onClick={async (e) => {
                       e.stopPropagation();
 
-                      const confirmDelete = window.confirm(
-                        t("confirmDeleteClient", lang)
-                      );
+                      const confirmDelete = window.confirm(t("deleteAppointment", lang));
                       if (!confirmDelete) return;
 
                       const hasAppointments = appointments.some(
@@ -1904,6 +1989,8 @@ console.log("VAPID KEY:", vapidKey);
                   const isSeen = !!a.seenAt;
                   const isCancelled = a.status === "cancelled";
                   const isConfirmed = a.status === "confirmed";
+                  const isClientCancelled =
+                    isCancelled && a.cancelledBy === "client";
 
                   return (
                     <div
@@ -2114,9 +2201,12 @@ console.log("VAPID KEY:", vapidKey);
 
                           <div>
                             {/* {isRead ? "✔" : "🔔"} */}
-                            {!isSeen && "🔔"}
+                            {/* {!isSeen && "🔔"}
                             {isSeen && !isConfirmed && "👁"}
-                            {isConfirmed && "✔"}
+                            {isConfirmed && "✔"} */}
+                            {!isSeen && "🔔"}
+                            {isSeen && !isClientCancelled && "✅"}
+                            {isClientCancelled && "❌"}
                           </div>
 
                           {a.notes && (
@@ -2262,7 +2352,7 @@ console.log("VAPID KEY:", vapidKey);
               setClientMenu(null);
             }}
           >
-            Delete
+            Cancel
           </div>
         </div>
       )}
@@ -2383,7 +2473,8 @@ console.log("VAPID KEY:", vapidKey);
             <div
               style={{ cursor: "pointer", color: "red" }}
               onClick={async () => {
-                const confirmDelete = window.confirm("Delete?");
+
+                const confirmDelete = window.confirm(t("deleteAppointment", lang));
                 if (!confirmDelete) return;
 
                 await deleteAppointment(token, appointmentMenu.appointment.id);
@@ -2392,7 +2483,7 @@ console.log("VAPID KEY:", vapidKey);
                 await reloadAppointments();
               }}
             >
-              Delete
+              Cancel
             </div>
 
             {/* ADD / EDIT NOTE */}

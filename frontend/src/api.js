@@ -110,12 +110,24 @@ export const updateAppointment = async (token, id, data) => {
   return response;
 };
 
+// export async function deleteAppointment(token, id) {
+//   await fetch(`${API_URL}/appointments/${id}`, {
+//     method: "DELETE",
+//     headers: {
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+// }
 export async function deleteAppointment(token, id) {
-  await fetch(`${API_URL}/appointments/${id}`, {
-    method: "DELETE",
+  await fetch(`${API_URL}/appointments/${id}/status`, {
+    method: "PATCH",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
+    body: JSON.stringify({
+      status: "cancelled",
+    }),
   });
 }
 
