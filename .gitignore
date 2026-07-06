@@ -1,4 +1,16 @@
 node_modules
-.env
-*.sqlite
 dist
+
+# Main environment
+.env
+
+# Local environment variants
+.env.*
+backend/.env.*
+
+# SQLite (legacy)
+*.sqlite
+*.sqlite-journal
+
+# Prisma Studio
+.prisma
