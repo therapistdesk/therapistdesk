@@ -28,6 +28,8 @@ export class AuthService {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
     console.log('VERIFICATION CODE:', code);
+    
+    await this.emailService.sendVerificationEmail(email, code);
 
     // ✅ ВАЖНО: пазим user
     const user = await this.prisma.user.create({

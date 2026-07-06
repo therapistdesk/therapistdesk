@@ -4,8 +4,10 @@ export default function RegisterApp({ onBack }) {
   // console.log("REGISTER COMPONENT RENDERED");
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const TOTAL_STEPS = 3;
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  // const [submitted, setSubmitted] = useState(false);
+  const TOTAL_STEPS = 1;
   const [form, setForm] = useState({
     basic: {
       firstName: "",
@@ -61,9 +63,9 @@ export default function RegisterApp({ onBack }) {
         errors.confirmPassword = "Passwords do not match";
       }
     }
-    <div style={{ fontSize: 12, color: "#666", marginTop: 10 }}>
-      Fill the form and click Next to continue registration
-    </div>
+    // <div style={{ fontSize: 12, color: "#666", marginTop: 10 }}>
+    //   Fill the form and click Next to continue registration
+    // </div>
 
     // STEP 2
     if (step === 2) {
@@ -116,7 +118,7 @@ export default function RegisterApp({ onBack }) {
   };
 
   const handleSubmit = async () => {
-    console.log("SUBMIT START");
+    // console.log("SUBMIT START");
 
     const payload = {
       email: form.basic.email,
@@ -135,22 +137,28 @@ export default function RegisterApp({ onBack }) {
     };
 
     try {
-const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(payload),
-});
+      setErrorMessage("");
+      setSuccessMessage("");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
 
-      console.log("STATUS:", res.status);
+      // console.log("STATUS:", res.status);
 
       const data = await res.json();
-      console.log("REGISTER RESPONSE:", data);
+      // console.log("REGISTER RESPONSE:", data);
 
-      if (data.error) {
-        alert(data.error);
+      if (!res.ok) {
+        if (data.message === "User already exists") {
+          setErrorMessage("An account with this e-mail already exists.");
+        } else {
+          setErrorMessage(data.message || "Registration failed.");
+        }
         return;
       }
 
@@ -158,7 +166,14 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         console.log("SAVE EMAIL:", form.basic.email);
         localStorage.setItem("verifyEmail", form.basic.email);
         localStorage.setItem("verifyPassword", form.basic.password);
-        window.location.reload();
+        setSuccessMessage(
+          "Registration successful. Verification code sent to your e-mail."
+        );
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
         return;
       }
 
@@ -196,246 +211,277 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
             </div>
           )} */}
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    placeholder="First name *"
-    value={form.basic.firstName}
-    onChange={(e) =>
-      handleChange("basic", "firstName", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.firstName
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
+          <div style={{ marginBottom: 18 }}>
+            <input
+              placeholder="First name *"
+              value={form.basic.firstName}
+              onChange={(e) =>
+                handleChange("basic", "firstName", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.firstName
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
 
-  {form.errors.firstName && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.firstName}
-    </div>
-  )}
-</div>
+            {form.errors.firstName && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.firstName}
+              </div>
+            )}
+          </div>
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    placeholder="Middle name"
-    value={form.basic.middleName}
-    onChange={(e) =>
-      handleChange("basic", "middleName", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: "1px solid #ccc",
-    }}
-  />
-</div>
-
-
-<div style={{ marginBottom: 18 }}>
-  <input
-    placeholder="Last name *"
-    value={form.basic.lastName}
-    onChange={(e) =>
-      handleChange("basic", "lastName", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.lastName
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
-
-  {form.errors.lastName && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.lastName}
-    </div>
-  )}
-</div>
+          <div style={{ marginBottom: 18 }}>
+            <input
+              placeholder="Middle name"
+              value={form.basic.middleName}
+              onChange={(e) =>
+                handleChange("basic", "middleName", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: "1px solid #ccc",
+              }}
+            />
+          </div>
 
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    placeholder="Email *"
-    value={form.basic.email}
-    onChange={(e) =>
-      handleChange("basic", "email", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.email
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
+          <div style={{ marginBottom: 18 }}>
+            <input
+              placeholder="Last name *"
+              value={form.basic.lastName}
+              onChange={(e) =>
+                handleChange("basic", "lastName", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.lastName
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
 
-  {form.errors.email && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.email}
-    </div>
-  )}
-</div>
+            {form.errors.lastName && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.lastName}
+              </div>
+            )}
+          </div>
 
 
+          <div style={{ marginBottom: 18 }}>
+            <input
+              placeholder="Email *"
+              value={form.basic.email}
+              onChange={(e) =>
+                handleChange("basic", "email", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.email
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    placeholder="Phone *"
-    value={form.basic.phone}
-    onChange={(e) =>
-      handleChange("basic", "phone", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.phone
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
-
-  {form.errors.phone && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.phone}
-    </div>
-  )}
-</div>
+            {form.errors.email && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.email}
+              </div>
+            )}
+          </div>
 
 
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    type={showPassword ? "text" : "password"}
-    placeholder="Password *"
-    value={form.basic.password}
-    onChange={(e) =>
-      handleChange("basic", "password", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.password
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
+          <div style={{ marginBottom: 18 }}>
+            <input
+              placeholder="Phone *"
+              value={form.basic.phone}
+              onChange={(e) =>
+                handleChange("basic", "phone", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.phone
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
 
-  <div style={{ marginTop: 8 }}>
-    <button
-      type="button"
-      onClick={() => setShowPassword((s) => !s)}
-    >
-      {showPassword ? "Hide" : "Show"}
-    </button>
-  </div>
-
-  <div
-    style={{
-      fontSize: 12,
-      color: "#666",
-      marginTop: 6,
-    }}
-  >
-    Strength: {getPasswordStrength(form.basic.password)}
-  </div>
-
-  {form.errors.password && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.password}
-    </div>
-  )}
-</div>
+            {form.errors.phone && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.phone}
+              </div>
+            )}
+          </div>
 
 
-<div style={{ marginBottom: 18 }}>
-  <input
-    name="confirmPassword"
-    type="password"
-    placeholder="Confirm password *"
-    value={form.basic.confirmPassword}
-    onChange={(e) =>
-      handleChange("basic", "confirmPassword", e.target.value)
-    }
-    style={{
-      width: 260,
-      padding: "10px 12px",
-      fontSize: 15,
-      borderRadius: 8,
-      boxSizing: "border-box",
-      border: form.errors.confirmPassword
-        ? "1px solid red"
-        : "1px solid #ccc",
-    }}
-  />
 
-  {form.errors.confirmPassword && (
-    <div
-      style={{
-        color: "red",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      {form.errors.confirmPassword}
-    </div>
-  )}
-</div>
+          <div style={{ marginBottom: 18 }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password *"
+              value={form.basic.password}
+              onChange={(e) =>
+                handleChange("basic", "password", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.password
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
 
-          <button onClick={next}>Next</button>
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            <div
+              style={{
+                fontSize: 12,
+                color: "#666",
+                marginTop: 6,
+              }}
+            >
+              Strength: {getPasswordStrength(form.basic.password)}
+            </div>
+
+            {form.errors.password && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.password}
+              </div>
+            )}
+          </div>
+
+
+          <div style={{ marginBottom: 18 }}>
+            <input
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm password *"
+              value={form.basic.confirmPassword}
+              onChange={(e) =>
+                handleChange("basic", "confirmPassword", e.target.value)
+              }
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                padding: "10px 12px",
+                fontSize: 15,
+                borderRadius: 8,
+                boxSizing: "border-box",
+                border: form.errors.confirmPassword
+                  ? "1px solid red"
+                  : "1px solid #ccc",
+              }}
+            />
+
+            {form.errors.confirmPassword && (
+              <div
+                style={{
+                  color: "red",
+                  fontSize: 12,
+                  marginTop: 4,
+                }}
+              >
+                {form.errors.confirmPassword}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              if (TOTAL_STEPS === 1) {
+                handleSubmit();
+              } else {
+                next();
+              }
+            }}
+          >
+            {TOTAL_STEPS === 1 ? "Create account" : "Next"}
+          </button>
+
+          {errorMessage && (
+            <div
+              style={{
+                marginTop: 12,
+                color: "#dc2626",
+                fontSize: 14,
+                textAlign: "center",
+                maxWidth: 320,
+              }}
+            >
+              {errorMessage}
+            </div>
+          )}
 
         </>
       )}
@@ -534,14 +580,48 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
           <button onClick={next}>Next</button>
         </>
       )}
-      <div style={{ fontSize: 12, color: "#666", marginTop: 10 }}>
+
+      {/* <div style={{ fontSize: 12, color: "#666", marginTop: 10 }}>
         Almost done — click Next to review your data
-      </div>
+      </div> */}
 
       {step === 3 && (
         <>
-          <h4>Review</h4>
-          <pre>{JSON.stringify(form, null, 2)}</pre>
+          {/* <h4>Review</h4>
+          <pre>{JSON.stringify(form, null, 2)}</pre> */}
+
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              margin: "0 auto",
+              textAlign: "left",
+              background: "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              padding: 20,
+              marginBottom: 20,
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Review your information</h3>
+
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: 10,
+                borderBottom: "1px solid #eee",
+                paddingBottom: 6,
+              }}
+            >
+              Basic information
+            </div>
+
+            <div><strong>First name:</strong> {form.basic.firstName}</div>
+            <div><strong>Middle name:</strong> {form.basic.middleName || "-"}</div>
+            <div><strong>Last name:</strong> {form.basic.lastName}</div>
+            <div><strong>Email:</strong> {form.basic.email}</div>
+            <div><strong>Phone:</strong> {form.basic.phone}</div>
+          </div>
 
           <button onClick={back}>Back</button>
 
@@ -565,9 +645,9 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         </>
       )}
 
-      <div style={{ marginBottom: 10, fontWeight: "bold" }}>
+      {/* <div style={{ marginBottom: 10, fontWeight: "bold" }}>
         Review your data and click Register to finish
-      </div>
+      </div> */}
 
       <br />
       {onBack && <button onClick={onBack}>Back to Login</button>}

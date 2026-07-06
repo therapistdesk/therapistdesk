@@ -30,8 +30,8 @@ function generateDates({ startTime, endTime, until, count }) {
   const baseEnd = new Date(endTime);
   const endDate = until ? new Date(until) : null;
 
-  console.log("START:", startTime);
-  console.log("CURRENT INIT:", current);
+  // console.log("START:", startTime);
+  // console.log("CURRENT INIT:", current);
 
   if (isNaN(current.getTime()) || isNaN(baseEnd.getTime())) {
     console.log("❌ INVALID DATE");
@@ -41,8 +41,8 @@ function generateDates({ startTime, endTime, until, count }) {
   const safeCount = count && count > 0 ? count : 1;
 
   for (let i = 0; i < safeCount; i++) {
-    console.log("---- LOOP ----", i);
-    console.log("CURRENT:", current);
+    // console.log("---- LOOP ----", i);
+    // console.log("CURRENT:", current);
 
     // stop по дата
     if (endDate && current > endDate) {
@@ -55,10 +55,10 @@ function generateDates({ startTime, endTime, until, count }) {
     const end = new Date(current);
     end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), 0, 0);
 
-    console.log("✅ CREATING:", {
-      start: start.toISOString(),
-      end: end.toISOString(),
-    });
+    // console.log("✅ CREATING:", {
+    //   start: start.toISOString(),
+    //   end: end.toISOString(),
+    // });
 
     result.push({
       startTime: start,
@@ -77,7 +77,7 @@ function generateDates({ startTime, endTime, until, count }) {
     );
   }
 
-  console.log("🎯 RESULT COUNT:", result.length);
+  // console.log("🎯 RESULT COUNT:", result.length);
 
   return result;
 }
@@ -106,7 +106,7 @@ export class AppointmentsService {
       throw new BadRequestException("INVALID CLIENT ID");
     }
 
-    console.log("CREATE DTO:", dto);
+    // console.log("CREATE DTO:", dto);
 
     try {
       // ✅ СЪЗДАВАМЕ СРЕЩАТА
@@ -189,7 +189,7 @@ export class AppointmentsService {
 
 
   async findByDate(date: string, userId: number) {
-    console.log("DATE REQUEST:", date);
+    // console.log("DATE REQUEST:", date);
 
     return this.prisma.appointment.findMany({
       where: {
@@ -287,14 +287,14 @@ export class AppointmentsService {
       }
     });
 
-    console.log(
-      "APPOINTMENTS:",
-      appointments.map(a => ({
-        id: a.id,
-        status: a.status,
-        cancelledBy: a.cancelledBy
-      }))
-    );
+    // console.log(
+    //   "APPOINTMENTS:",
+    //   appointments.map(a => ({
+    //     id: a.id,
+    //     status: a.status,
+    //     cancelledBy: a.cancelledBy
+    //   }))
+    // );
 
     // 🔥 махаме оригиналите ако има exception
     const exceptionMap = new Map();
@@ -367,12 +367,12 @@ export class AppointmentsService {
     userIdMaybe?: number,
   ) {
 
-    console.log("RAW INPUT:", {
-      tokenOrStatus,
-      statusMaybe,
-      reason,
-      userIdMaybe,
-    });
+    // console.log("RAW INPUT:", {
+    //   tokenOrStatus,
+    //   statusMaybe,
+    //   reason,
+    //   userIdMaybe,
+    // });
 
     // ✅ ясен boolean
     // const isClientCall = typeof statusMaybe === 'string';
@@ -390,23 +390,23 @@ export class AppointmentsService {
     }
 
     // 🔍 лог 1: вход
-    console.log("UPDATE INPUT:", {
-      id,
-      isClientCall,
-      status,
-      cancelledBy,
-    });
+    // console.log("UPDATE INPUT:", {
+    //   id,
+    //   isClientCall,
+    //   status,
+    //   cancelledBy,
+    // });
 
     const existing = await this.prisma.appointment.findUnique({
       where: { id },
     });
 
     // 🔍 лог 2: какво има в DB преди update
-    console.log("BEFORE UPDATE:", {
-      id,
-      existingStatus: existing?.status,
-      existingCancelledBy: existing?.cancelledBy,
-    });
+    // console.log("BEFORE UPDATE:", {
+    //   id,
+    //   existingStatus: existing?.status,
+    //   existingCancelledBy: existing?.cancelledBy,
+    // });
 
     // ❗ защита
     if (
@@ -430,11 +430,11 @@ export class AppointmentsService {
     });
 
     // 🔍 лог 3: резултат след update
-    console.log("AFTER UPDATE:", {
-      id: updated.id,
-      status: updated.status,
-      cancelledBy: updated.cancelledBy,
-    });
+    // console.log("AFTER UPDATE:", {
+    //   id: updated.id,
+    //   status: updated.status,
+    //   cancelledBy: updated.cancelledBy,
+    // });
 
     // 🔥 стоп на reminders
     if (status === 'cancelled') {
@@ -462,7 +462,7 @@ export class AppointmentsService {
       throw new Error("Appointment not found");
     }
 
-    console.log("APPOINTMENT CANCELLED");
+    // console.log("APPOINTMENT CANCELLED");
 
     // 🔥 СПРИ REMINDERS
     await this.prisma.message.updateMany({
@@ -495,7 +495,7 @@ export class AppointmentsService {
       include: { client: true },
     });
 
-    console.log("APPOINTMENT CANCELLED");
+    // console.log("APPOINTMENT CANCELLED");
 
     // 🔥 СПРИ REMINDERS (старото поведение)
     await this.prisma.message.updateMany({
@@ -647,7 +647,7 @@ export class AppointmentsService {
           hour: '2-digit',
           minute: '2-digit',
         });
-        console.log("RESCHEDULE PUSH TRIGGERED");
+        // console.log("RESCHEDULE PUSH TRIGGERED");
         await this.pushService.sendToClient(updated.clientId, {
           title: 'Промяна на среща',
           body: `Срещата ви е променена\n${date} • ${time}`,

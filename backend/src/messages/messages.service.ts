@@ -13,7 +13,7 @@ export class MessagesService {
     private smsService: SmsService,
     private pushService: PushService,
   ) {
-    console.log("MessagesService INIT");
+    // console.log("MessagesService INIT");
   }
 
   @Cron('*/5 * * * *')
@@ -30,15 +30,15 @@ export class MessagesService {
       },
     });
 
-    console.log('MARK COMPLETED DONE');
+    // console.log('MARK COMPLETED DONE');
   }
 
   @Cron('0 * * * * *')
   async processMessages() {
-    console.log("CRON TICK");
+    // console.log("CRON TICK");
 
     const now = new Date();
-    console.log("NOW:", now);
+    // console.log("NOW:", now);
 
     let messages = [];
 
@@ -59,15 +59,15 @@ export class MessagesService {
         },
       });
     } catch (e) {
-      console.log("❌ DB CONNECTION LOST - SKIP THIS TICK");
-      console.log("SKIPPING CRON TICK DUE TO DB ERROR");
+      // console.log("❌ DB CONNECTION LOST - SKIP THIS TICK");
+      // console.log("SKIPPING CRON TICK DUE TO DB ERROR");
       return; // 🔥 СПИРАМЕ текущия cron, чакаме следващия
     }
 
-    console.log("MESSAGES FOUND:", messages.length);
+    // console.log("MESSAGES FOUND:", messages.length);
 
     for (const msg of messages as any[]) {
-      console.log("PROCESSING MSG:", msg.id);
+      // console.log("PROCESSING MSG:", msg.id);
 
       try {
         // 🔒 duplicate защита
@@ -95,7 +95,7 @@ export class MessagesService {
         });
 
         if (!appointment || !appointment.client) {
-          console.log("INVALID APPOINTMENT:", msg.id);
+          // console.log("INVALID APPOINTMENT:", msg.id);
           continue;
         }
 
@@ -138,8 +138,7 @@ export class MessagesService {
           },
         };
 
-        // console.log("PUSH PAYLOAD:", payload);
-        console.log("SENDING PUSH TO:", msg.clientId);
+        // console.log("SENDING PUSH TO:", msg.clientId);
 
         // 🔥 PUSH
         await this.pushService.sendToClient(msg.clientId, payload);
@@ -165,10 +164,10 @@ export class MessagesService {
           },
         });
 
-        console.log("SENT:", msg.id);
+        // console.log("SENT:", msg.id);
 
       } catch (e) {
-        console.log("FAILED:", msg.id, e);
+        // console.log("FAILED:", msg.id, e);
 
         await this.prisma.message.update({
           where: { id: msg.id },
@@ -193,7 +192,7 @@ export class MessagesService {
       },
     });
 
-    console.log('ARCHIVE DONE');
+    // console.log('ARCHIVE DONE');
   }
 
   @Cron('0 4 * * *')
@@ -208,12 +207,12 @@ export class MessagesService {
       },
     });
 
-    console.log('CLEANUP MESSAGES:', result.count);
+    // console.log('CLEANUP MESSAGES:', result.count);
   }
 
   @Cron('0 3 * * *')
   async cleanup() {
-    console.log("CLEANUP START");
+    // console.log("CLEANUP START");
 
     const now = new Date();
 
@@ -240,9 +239,9 @@ export class MessagesService {
       },
     });
 
-    console.log("CLEANUP DONE:", {
-      reminders: deletedReminders.count,
-      broadcast: deletedBroadcast.count,
-    });
+    // console.log("CLEANUP DONE:", {
+    //   reminders: deletedReminders.count,
+    //   broadcast: deletedBroadcast.count,
+    // });
   }
 }
