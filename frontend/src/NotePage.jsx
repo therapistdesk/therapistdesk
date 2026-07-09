@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { updateAppointment } from "./api";
 
 export default function NotePage() {
+  console.log("NotePage mounted");
   const { id } = useParams();
   const navigate = useNavigate();
 

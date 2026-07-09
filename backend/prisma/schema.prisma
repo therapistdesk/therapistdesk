@@ -78,6 +78,9 @@ model Appointment {
   therapistId   Int
   seenAt        DateTime?
   status        String           @default("scheduled")
+  cancelledBy   String?
+  cancelledAt   DateTime?
+  cancelReason  String?
   notes         String?
   remindersSent String?
   seriesId      Int?

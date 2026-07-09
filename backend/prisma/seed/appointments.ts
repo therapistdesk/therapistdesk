@@ -2,7 +2,6 @@ import {
   PrismaClient,
   Therapist,
   Client,
-  AppointmentStatus,
 } from "@prisma/client";
 
 const HOURS = [9, 10, 11, 13, 14, 15, 16, 17];
@@ -15,19 +14,19 @@ function randomHour() {
   return randomItem(HOURS);
 }
 
-function randomStatus(past: boolean): AppointmentStatus {
+function randomStatus(past: boolean): string {
   if (past) {
     return Math.random() < 0.95
-      ? AppointmentStatus.completed
-      : AppointmentStatus.cancelled;
+      ? "completed"
+      : "cancelled";
   }
 
   const r = Math.random();
 
-  if (r < 0.60) return AppointmentStatus.confirmed;
-  if (r < 0.90) return AppointmentStatus.pending;
+  if (r < 0.60) return "confirmed";
+  if (r < 0.90) return "scheduled";
 
-  return AppointmentStatus.cancelled;
+  return "cancelled";
 }
 
 function randomBusinessDate(daysFromToday: number) {
@@ -53,7 +52,7 @@ async function createAppointment(
   therapist: Therapist,
   client: Client,
   start: Date,
-  status: AppointmentStatus,
+  status: string,
 ) {
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
@@ -67,8 +66,6 @@ async function createAppointment(
       endTime: end,
 
       status,
-
-      durationSnapshot: 60,
     },
   });
 }

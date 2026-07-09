@@ -29,14 +29,23 @@ export class PushService {
     //   privateKey,
     // );
     webpush.setVapidDetails(
-      'mailto:test@test.com',
-      process.env.VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY,
+      process.env.VAPID_SUBJECT || 'mailto:test@test.com',
+      publicKey,
+      privateKey,
     );
 
     const subs = await this.prisma.pushSubscription.findMany({
       where: { clientId },
     });
+
+    console.log(
+      "SUBSCRIPTIONS:",
+      subs.map(s => ({
+        id: s.id,
+        clientId: s.clientId,
+        endpoint: s.endpoint.slice(-20),
+      }))
+    );
 
     console.log("SUBS COUNT:", subs.length);
 
@@ -54,8 +63,20 @@ export class PushService {
         );
 
         console.log("PUSH SENT");
-      } catch (err) {
-        console.log("FULL ERROR:", err); // 🔥 пълен лог
+      } catch (err: any) {
+
+        if (err?.statusCode === 404 || err?.statusCode === 410) {
+          console.log("REMOVE EXPIRED SUBSCRIPTION:", sub.endpoint);
+
+          await this.prisma.pushSubscription.delete({
+            where: {
+              endpoint: sub.endpoint,
+            },
+          });
+
+          continue;
+        }
+        console.error("PUSH ERROR:", err);
       }
     }
   }

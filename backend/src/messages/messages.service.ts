@@ -122,10 +122,50 @@ export class MessagesService {
 
         const clientName = appointment.client?.name || '';
 
+        let title = 'Известие';
+        let body = `${clientName ? clientName + ', ' : ''}${date} • ${time}\nТерапевт: ${therapistName}`;
+        switch (msg.type) {
+          case 'appointment_created':
+            title = '📅 Нова среща';
+            body =
+              `${clientName ? clientName + ', ' : ''}` +
+              `Имате нова среща.\n` +
+              `${date} • ${time}\n` +
+              `Терапевт: ${therapistName}`;
+            break;
+
+          case 'appointment_updated':
+            title = '🔄 Срещата е променена';
+            body =
+              `${clientName ? clientName + ', ' : ''}` +
+              `Срещата беше променена.\n` +
+              `${date} • ${time}\n` +
+              `Терапевт: ${therapistName}`;
+            break;
+
+          case 'appointment_cancelled':
+            title = '❌ Срещата е отменена';
+            body =
+              `${clientName ? clientName + ', ' : ''}` +
+              `Срещата беше отменена.\n` +
+              `${date} • ${time}`;
+            break;
+
+          case 'reminder_72h':
+          case 'reminder_24h':
+          case 'reminder_1h':
+            title = '⏰ Напомняне за среща';
+            body =
+              `${clientName ? clientName + ', ' : ''}` +
+              `${date} • ${time}\n` +
+              `Терапевт: ${therapistName}`;
+            break;
+        }
+
         // 🔥 ЕДИНЕН PAYLOAD
         const payload = {
-          title: 'Напомняне за среща',
-          body: `${clientName ? clientName + ', ' : ''}${date} • ${time}\nТерапевт: ${therapistName}`,
+          title,
+          body,
           icon: '/icons/icon-192.png',
           badge: '/icons/badge.png',
           tag: `appointment-${appointment.id}`,
@@ -141,6 +181,9 @@ export class MessagesService {
         // console.log("SENDING PUSH TO:", msg.clientId);
 
         // 🔥 PUSH
+        console.log("MESSAGE TYPE:", msg.type);
+        console.log("MESSAGE SENDAT:", msg.sendAt);
+
         await this.pushService.sendToClient(msg.clientId, payload);
 
         // 🔥 SMS (по-добър текст)

@@ -3,44 +3,63 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('push')
 export class PushController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   @Post('subscribe')
   async subscribe(@Body() body: any) {
-    const { token, subscription } = body;
+    const {
+      endpoint,
+      p256dh,
+      auth,
+      clientId,
+      token,
+      subscription,
+    } = body;
 
-    // 🔥 игнорирай празни заявки
-    if (!token || !subscription) {
-      console.log("SKIP INVALID SUBSCRIBE CALL");
-      return;
+    let finalClientId = clientId;
+    let finalEndpoint = endpoint;
+    let finalP256dh = p256dh;
+    let finalAuth = auth;
+
+    // Старият формат (ClientAccess)
+    if (token && subscription) {
+      const client = await this.prisma.client.findUnique({
+        where: {
+          clientAccessToken: token,
+        },
+      });
+
+      if (!client) {
+        console.log("CLIENT NOT FOUND");
+        return;
+      }
+
+      finalClientId = client.id;
+      finalEndpoint = subscription.endpoint;
+      finalP256dh = subscription.keys.p256dh;
+      finalAuth = subscription.keys.auth;
     }
 
-    const client = await this.prisma.client.findUnique({
-      where: { clientAccessToken: token },
-    });
-
-    if (!client) {
-      console.log("CLIENT NOT FOUND");
+    // Проверка след нормализиране
+    if (!finalEndpoint || !finalP256dh || !finalAuth || !finalClientId) {
+      console.log("SKIP INVALID SUBSCRIBE CALL");
       return;
     }
 
     await this.prisma.pushSubscription.upsert({
       where: {
-        endpoint_clientId: {
-          endpoint: subscription.endpoint,
-          clientId: client.id,
-        },
+        endpoint: finalEndpoint,
       },
       update: {
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
+        clientId: finalClientId,
+        p256dh: finalP256dh,
+        auth: finalAuth,
       },
       create: {
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        clientId: client.id,
+        endpoint: finalEndpoint,
+        clientId: finalClientId,
+        p256dh: finalP256dh,
+        auth: finalAuth,
       },
     });
 

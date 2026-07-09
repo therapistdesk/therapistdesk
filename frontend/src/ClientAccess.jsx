@@ -85,7 +85,9 @@ export default function ClientAccess() {
     }, [token]);
 
     const subscribeToPush = async () => {
-        console.log("SUBSCRIBE STARTED");
+        // alert("CLIENT subscribeToPush()");
+        console.log("CLIENT subscribeToPush()");
+        // console.log("SUBSCRIBE STARTED");
         try {
             const path = window.location.pathname;
             const match = path.match(/client-access\/(.+)/);
@@ -107,23 +109,24 @@ export default function ClientAccess() {
             const reg = await navigator.serviceWorker.ready;
             console.log("STEP 2");
 
-            const existing = await reg.pushManager.getSubscription();
-            console.log("STEP 3", existing);
-            // if (existing) return;
-            if (existing) {
-                await existing.unsubscribe();
-            }
+            let sub = await reg.pushManager.getSubscription();
+            console.log("STEP 3", sub);
+
             const permission = await Notification.requestPermission();
             console.log("STEP 4", permission);
+
             if (permission !== "granted") return;
 
-            const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-            console.log("STEP 5", vapidKey);
+            if (!sub) {
+                console.log("CREATE NEW SUBSCRIPTION");
 
-            const sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidKey),
-            });
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+                });
+            } else {
+                console.log("USING EXISTING SUBSCRIPTION");
+            }
 
             console.log("STEP 6", sub);
 

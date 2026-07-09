@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import NotePage from "./NotePage";
+// import NotePage from "./NotePage";
 import Modal from "./components/Modal";
+import NoteModal from "./components/NoteModal";
 import ClientAccess from "./ClientAccess";
 import ClientQR from "./components/ClientQR";
 
@@ -20,7 +21,7 @@ import { t } from "./translations";
 import RegisterApp from "./register/RegisterApp";
 import ResetPassword from "./register/ResetPassword";
 import VerifyEmail from "./register/VerifyEmail";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 
 import RecurringForm from "./components/RecurringForm";
 console.log("RecurringForm:", RecurringForm);
@@ -241,6 +242,9 @@ function App() {
   }, []);
 
   async function subscribePush() {
+    // alert("APP subscribePush()");
+    // console.log("SUBSCRIBE FUNCTION ENTERED");
+    console.log("APP subscribePush()");
     if (!selectedClient) {
       console.log("NO CLIENT → SKIP SUBSCRIBE");
       return;
@@ -261,31 +265,11 @@ function App() {
     console.log("VAPID KEY:", vapidKey);
     console.log("STEP 4 - BEFORE SUBSCRIBE");
 
-    // let sub;
-    // try {
-    //   sub = await reg.pushManager.subscribe({
-    //     userVisibleOnly: true,
-    //     applicationServerKey: convertedKey,
-    //   });
-    // } catch (e) {
-    //   console.log("SUBSCRIBE ERROR:", e);
-    //   return;
-    // }
-
-    // console.log("STEP 5 - SUB:", sub);
-
-    // const subData = sub.toJSON();
-
-    const existing = await reg.pushManager.getSubscription();
-
-    if (existing) {
-      console.log("UNSUBSCRIBING OLD");
-      await existing.unsubscribe();
-    }
-
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub) {
+      console.log("CREATE NEW SUBSCRIPTION");
+
       try {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -295,6 +279,8 @@ function App() {
         console.log("SUBSCRIBE ERROR:", e);
         return;
       }
+    } else {
+      console.log("USING EXISTING SUBSCRIPTION");
     }
 
     const subData = sub?.toJSON();
@@ -332,11 +318,13 @@ function App() {
 
   // console.log("APP RENDER");
   const [moveMode, setMoveMode] = useState(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const location = useLocation();
   const handleAddNote = (appointment) => {
-    setAppointmentMenu(null); // затваря менюто
-    navigate(`/appointments/${appointment.id}/notes`);
+    setAppointmentMenu(null);
+
+    setNoteAppointment(appointment);
+    setNoteModalOpen(true);
   };
   // ===== CLIENTS ====
   const [showAddClient, setShowAddClient] = useState(false);
@@ -384,6 +372,10 @@ function App() {
   const [clients, setClients] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [activeAppointment, setActiveAppointment] = useState(null);
+
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteAppointment, setNoteAppointment] = useState(null);
+
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
 
   const [user, setUser] = useState(null);
@@ -1106,7 +1098,7 @@ function App() {
   //   );
   // }
   <Routes>
-    <Route path="/appointments/:id/notes" element={<NotePage />} />
+    {/* <Route path="/appointments/:id/notes" element={<NotePage />} /> */}
     <Route path="/client-access/:id" element={<ClientAccess />} />
   </Routes>
 
@@ -2209,21 +2201,21 @@ function App() {
                             {isClientCancelled && "❌"}
                           </div>
 
-                          {a.notes && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                opacity: 0.6,
-                                cursor: "pointer",
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/appointments/${a.id}/notes`);
-                              }}
-                            >
-                              📝
-                            </span>
-                          )}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              opacity: a.notes ? 1 : 0.35,
+                              cursor: "pointer",
+                              marginLeft: 6,
+                            }}
+                            title={a.notes ? "Редактирай бележката" : "Добави бележка"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddNote(a);
+                            }}
+                          >
+                            📝
+                          </span>
 
                         </div>
                       </div>
@@ -2665,6 +2657,23 @@ function App() {
           />
         </Modal>
       )}
+
+      <NoteModal
+        open={noteModalOpen}
+        appointment={noteAppointment}
+        onClose={() => setNoteModalOpen(false)}
+
+        onSave={async (text) => {
+          await updateAppointment(token, noteAppointment.id, {
+            notes: text,
+          });
+
+          await reloadAppointments();
+
+          setNoteModalOpen(false);
+        }}
+
+      />
 
       {qrClient && (
         <div style={overlayStyle}>

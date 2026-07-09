@@ -483,6 +483,20 @@ export default function RegisterApp({ onBack }) {
             </div>
           )}
 
+          {successMessage && (
+            <div
+              style={{
+                marginTop: 12,
+                color: "#16a34a",
+                fontSize: 14,
+                textAlign: "center",
+                maxWidth: 320,
+              }}
+            >
+              {successMessage}
+            </div>
+          )}
+
         </>
       )}
 

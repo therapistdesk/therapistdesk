@@ -143,41 +143,77 @@ export class AppointmentsService {
             connect: { id: appointment.id },
           },
           type: 'appointment_created',
-          content: `Имате среща с ${therapistName} на ${formattedDate} от ${formattedTime}`,
+          content: 'Appointment created',
           sendAt: new Date(),
           status: 'pending', // 🔥 важно → да мине през cron
         },
       });
+      // да записва само валидни срещи
+      const now = new Date();
 
+      const reminders = [];
+
+      const reminderConfigs = [
+        { type: 'reminder_72h', minutes: 72 * 60 },
+        { type: 'reminder_24h', minutes: 24 * 60 },
+        { type: 'reminder_1h', minutes: 60 },
+      ];
+      // ------------------
       // 🔥 AUTO REMINDERS
-      await this.prisma.message.createMany({
-        data: [
-          {
-            clientId: appointment.clientId,
-            therapistId: appointment.therapistId,
-            appointmentId: appointment.id,
-            type: 'reminder_72h', // 🔥
-            sendAt: new Date(start.getTime() - 72 * 60 * 60 * 1000),
-            status: 'pending',
-          },
-          {
-            clientId: appointment.clientId,
-            therapistId: appointment.therapistId,
-            appointmentId: appointment.id,
-            type: 'reminder_24h', // 🔥
-            sendAt: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-            status: 'pending',
-          },
-          {
-            clientId: appointment.clientId,
-            therapistId: appointment.therapistId,
-            appointmentId: appointment.id,
-            type: 'reminder_1h', // 🔥
-            sendAt: new Date(start.getTime() - 60 * 60 * 1000),
-            status: 'pending',
-          },
-        ],
-      });
+      // await this.prisma.message.createMany({
+      //   data: [
+      //     {
+      //       clientId: appointment.clientId,
+      //       therapistId: appointment.therapistId,
+      //       appointmentId: appointment.id,
+      //       type: 'reminder_72h', // 🔥
+      //       sendAt: new Date(start.getTime() - 72 * 60 * 60 * 1000),
+      //       status: 'pending',
+      //     },
+      //     {
+      //       clientId: appointment.clientId,
+      //       therapistId: appointment.therapistId,
+      //       appointmentId: appointment.id,
+      //       type: 'reminder_24h', // 🔥
+      //       sendAt: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+      //       status: 'pending',
+      //     },
+      //     {
+      //       clientId: appointment.clientId,
+      //       therapistId: appointment.therapistId,
+      //       appointmentId: appointment.id,
+      //       type: 'reminder_1h', // 🔥
+      //       sendAt: new Date(start.getTime() - 60 * 60 * 1000),
+      //       status: 'pending',
+      //     },
+      //   ],
+      // });
+
+      for (const r of reminderConfigs) {
+        const sendAt = new Date(
+          start.getTime() - r.minutes * 60 * 1000
+        );
+
+        // Ако моментът за напомняне вече е минал, пропускаме го
+        if (sendAt <= now) {
+          continue;
+        }
+
+        reminders.push({
+          clientId: appointment.clientId,
+          therapistId: appointment.therapistId,
+          appointmentId: appointment.id,
+          type: r.type,
+          sendAt,
+          status: "pending",
+        });
+      }
+
+      if (reminders.length > 0) {
+        await this.prisma.message.createMany({
+          data: reminders,
+        });
+      }
 
       return appointment;
 
@@ -410,8 +446,8 @@ export class AppointmentsService {
 
     // ❗ защита
     if (
-      existing?.cancelledBy === 'therapist' &&
-      typeof tokenOrStatus === 'string'
+      isClientCall &&
+      existing?.cancelledBy === 'therapist'
     ) {
       throw new Error("Forbidden");
     }
@@ -636,11 +672,17 @@ export class AppointmentsService {
             cancelReason: null,
           }),
         },
-        include: { client: true },
+        include: {
+          client: true,
+          therapist: true,
+        },
       });
 
       if (isRescheduled && updated.clientId) {
         const d = new Date(updated.startTime);
+        const therapistName = updated.therapist
+          ? `${updated.therapist.firstName} ${updated.therapist.lastName}`
+          : 'Вашият терапевт';
 
         const date = d.toLocaleDateString('bg-BG');
         const time = d.toLocaleTimeString('bg-BG', {
@@ -649,8 +691,11 @@ export class AppointmentsService {
         });
         // console.log("RESCHEDULE PUSH TRIGGERED");
         await this.pushService.sendToClient(updated.clientId, {
-          title: 'Промяна на среща',
-          body: `Срещата ви е променена\n${date} • ${time}`,
+          title: '🔄 Срещата е променена',
+          body:
+            `${updated.client?.name ? updated.client.name + ',\n' : ''}` +
+            `${date} • ${time}\n` +
+            `Терапевт: ${therapistName}`,
           tag: `appointment-${updated.id}`,
           data: {
             appointmentId: updated.id,
