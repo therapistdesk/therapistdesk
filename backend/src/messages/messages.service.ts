@@ -13,7 +13,6 @@ export class MessagesService {
     private smsService: SmsService,
     private pushService: PushService,
   ) {
-    // console.log("MessagesService INIT");
   }
 
   @Cron('*/5 * * * *')
@@ -29,17 +28,11 @@ export class MessagesService {
         status: 'completed',
       },
     });
-
-    // console.log('MARK COMPLETED DONE');
   }
 
   @Cron('0 * * * * *')
   async processMessages() {
-    // console.log("CRON TICK");
-
     const now = new Date();
-    // console.log("NOW:", now);
-
     let messages = [];
 
     try {
@@ -59,33 +52,11 @@ export class MessagesService {
         },
       });
     } catch (e) {
-      // console.log("❌ DB CONNECTION LOST - SKIP THIS TICK");
-      // console.log("SKIPPING CRON TICK DUE TO DB ERROR");
       return; // 🔥 СПИРАМЕ текущия cron, чакаме следващия
     }
-
-    // console.log("MESSAGES FOUND:", messages.length);
-
     for (const msg of messages as any[]) {
-      // console.log("PROCESSING MSG:", msg.id);
-
       try {
-        // 🔒 duplicate защита
-        // const alreadySent = await this.prisma.message.findFirst({
-        //   where: {
-        //     appointmentId: msg.appointmentId,
-        //     sendAt: msg.sendAt,
-        //     status: 'sent',
-        //   },
-        // });
-
         if (msg.status === 'sent') continue;
-
-        // if (alreadySent) {
-        //   console.log("SKIP DUPLICATE:", msg.id);
-        //   continue;
-        // }
-
         const appointment = await this.prisma.appointment.findUnique({
           where: { id: msg.appointmentId },
           include: {
@@ -95,14 +66,9 @@ export class MessagesService {
         });
 
         if (!appointment || !appointment.client) {
-          // console.log("INVALID APPOINTMENT:", msg.id);
           continue;
         }
 
-        // 🔒 therapist
-        // const therapist = await this.prisma.therapist.findUnique({
-        //   where: { id: appointment.therapistId },
-        // });
         const therapist = await this.prisma.therapist.findUnique({
           where: { id: appointment.therapistId },
         });
@@ -178,12 +144,7 @@ export class MessagesService {
           },
         };
 
-        // console.log("SENDING PUSH TO:", msg.clientId);
-
         // 🔥 PUSH
-        console.log("MESSAGE TYPE:", msg.type);
-        console.log("MESSAGE SENDAT:", msg.sendAt);
-
         await this.pushService.sendToClient(msg.clientId, payload);
 
         // 🔥 SMS (по-добър текст)
@@ -207,11 +168,7 @@ export class MessagesService {
           },
         });
 
-        // console.log("SENT:", msg.id);
-
       } catch (e) {
-        // console.log("FAILED:", msg.id, e);
-
         await this.prisma.message.update({
           where: { id: msg.id },
           data: { status: 'failed' },
@@ -234,8 +191,6 @@ export class MessagesService {
         status: 'archived',
       },
     });
-
-    // console.log('ARCHIVE DONE');
   }
 
   @Cron('0 4 * * *')
@@ -249,14 +204,10 @@ export class MessagesService {
         sentAt: { lt: cutoff },
       },
     });
-
-    // console.log('CLEANUP MESSAGES:', result.count);
   }
 
   @Cron('0 3 * * *')
   async cleanup() {
-    // console.log("CLEANUP START");
-
     const now = new Date();
 
     // 🟢 1. reminders (7 дни)
@@ -281,10 +232,5 @@ export class MessagesService {
         sentAt: { lt: broadcastCutoff },
       },
     });
-
-    // console.log("CLEANUP DONE:", {
-    //   reminders: deletedReminders.count,
-    //   broadcast: deletedBroadcast.count,
-    // });
   }
 }

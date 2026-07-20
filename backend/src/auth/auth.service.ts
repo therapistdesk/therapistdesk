@@ -5,6 +5,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { randomUUID } from 'crypto';
 
+function timeToMinutes(time: string): number {
+  if (!time) {
+    return 0;
+  }
+
+  const [hours, minutes] = time.split(":").map(Number);
+
+  return hours * 60 + minutes;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -15,7 +25,6 @@ export class AuthService {
 
   async register(dto: any) {
     const { email, password } = dto;
-
     const existing = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -27,17 +36,20 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    console.log('VERIFICATION CODE:', code);
-    
-    await this.emailService.sendVerificationEmail(email, code);
-
+    // временно е махнато за тестване email
     // ✅ ВАЖНО: пазим user
+    const testMode = process.env.TEST_MODE === 'true';
     const user = await this.prisma.user.create({
       data: {
-        email: email,
+        email,
         password: hashedPassword,
-        verificationCode: code,
-        verificationCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+
+        isVerified: testMode,
+
+        verificationCode: testMode ? null : code,
+        verificationCodeExpiresAt: testMode
+          ? null
+          : new Date(Date.now() + 10 * 60 * 1000),
 
         therapist: {
           create: {
@@ -48,15 +60,6 @@ export class AuthService {
               ? new Date(dto.birthDate.split('.').reverse().join('-'))
               : null,
             gender: dto.gender || "male",
-
-            locations: {
-              create: {
-                name: dto.city || "Default",
-                country: dto.country || "",
-                city: dto.city || "",
-                address: dto.address || "",
-              },
-            },
           },
         },
       },
@@ -73,7 +76,167 @@ export class AuthService {
       throw new BadRequestException('Therapist not created');
     }
 
-    // 1005---
+    const locations = dto.practice?.locations ?? [];
+
+    if (locations.length > 0) {
+      await this.prisma.practiceLocation.createMany({
+        data: locations.map((location) => ({
+          therapistId: therapist.id,
+
+          number: location.number,
+          name: location.name,
+          type: location.type,
+
+          country: location.country,
+          city: location.city,
+          address: location.address,
+
+          notes: location.notes || null,
+
+          isActive: location.active ?? true,
+        })),
+      });
+    }
+
+    const categories = dto.practice?.categories ?? [];
+
+    const savedCategories = [];
+
+    for (const category of categories) {
+      const createdCategory = await this.prisma.category.create({
+        data: {
+          therapistId: therapist.id,
+          name: category.name,
+          description: category.description || null,
+          color: category.color,
+        },
+      });
+
+      savedCategories.push(createdCategory);
+    }
+
+    const savedServices = [];
+    const savedPracticeLocations = await this.prisma.practiceLocation.findMany({
+      where: {
+        therapistId: therapist.id,
+      },
+      orderBy: {
+        number: "asc",
+      },
+    });
+
+let serviceIndex = 0;
+    for (let i = 0; i < categories.length; i++) {
+      const category = categories[i];
+      const savedCategory = savedCategories[i];
+
+      if (!savedCategory) {
+        continue;
+      }
+
+      for (const service of category.services ?? []) {
+        const createdService = await this.prisma.service.create({
+          data: {
+            categoryId: savedCategory.id,
+
+            name: service.name,
+            description: service.description || null,
+
+            defaultDurationMinutes:
+              Number(service.defaultDurationMinutes) || null,
+
+            defaultPrice:
+              service.defaultPrice && service.defaultPrice !== ""
+                ? service.defaultPrice
+                : null,
+
+            currency: service.currency || "Euro",
+
+            color: service.color,
+
+            sortOrder: 0,
+            isActive: true,
+          },
+        });
+
+        savedServices.push(createdService);
+      }
+    }
+
+    for (let i = 0; i < categories.length; i++) {
+      const category = categories[i];
+
+      for (let j = 0; j < (category.services ?? []).length; j++) {
+        const service = category.services[j];
+        const savedService = savedServices[serviceIndex];
+
+        if (!savedService) {
+          continue;
+        }
+
+        for (const locationNumber of service.locations ?? []) {
+          const savedLocation = savedPracticeLocations.find(
+            (location) => location.number === locationNumber
+          );
+
+          if (!savedLocation) {
+            continue;
+          }
+
+          await this.prisma.serviceLocation.create({
+            data: {
+              serviceId: savedService.id,
+              practiceLocationId: savedLocation.id,
+            },
+          });
+        }
+        serviceIndex++;
+      }
+    }
+    // /////////////////////
+
+    const weekDays = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+    for (const location of dto.practice?.locations ?? []) {
+      const savedLocation = savedPracticeLocations.find(
+        (item) => item.number === location.number
+      );
+
+      if (!savedLocation) {
+        continue;
+      }
+
+      for (const day of weekDays) {
+        const intervals = location.workingHours?.[day] ?? [];
+
+        for (let sortOrder = 0; sortOrder < intervals.length; sortOrder++) {
+          const interval = intervals[sortOrder];
+
+          await this.prisma.workingInterval.create({
+            data: {
+              practiceLocationId: savedLocation.id,
+
+              day,
+
+              startMinutes: timeToMinutes(interval.start),
+              endMinutes: timeToMinutes(interval.end),
+
+              type: interval.type,
+
+              sortOrder,
+            },
+          });
+        }
+      }
+    }
+
     await this.prisma.therapistSettings.create({
       data: {
         therapistId: therapist.id,
@@ -81,7 +244,6 @@ export class AuthService {
         retentionMonths: 12,
       },
     });
-    // 1005----
 
     if (therapist) {
       const name = `${therapist.firstName || ''} ${therapist.lastName || ''}`.trim() || email;
@@ -97,7 +259,9 @@ export class AuthService {
       });
     }
 
-    return { requiresVerification: true };
+    return {
+      requiresVerification: !testMode,
+    };
   }
 
   async login(dto: any) {
@@ -198,8 +362,7 @@ export class AuthService {
       },
     });
 
-    console.log("NEW CODE:", newCode);
-
     return { success: true };
   }
+
 }

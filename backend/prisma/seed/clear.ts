@@ -17,7 +17,7 @@ export async function clearDatabase(prisma: PrismaClient) {
 
   await prisma.service.deleteMany();
 
-  await prisma.therapistLocation.deleteMany();
+  await prisma.location.deleteMany();
 
   await prisma.therapistSettings.deleteMany();
 

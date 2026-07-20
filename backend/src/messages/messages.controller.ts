@@ -74,11 +74,9 @@ export class MessagesController {
   @Get('access/:token')
   async getMessagesByToken(@Param('token') token: string) {
     // 1. намираме клиента
-    // console.log("TOKEN:", token);
     const client = await this.prisma.client.findUnique({
       where: { clientAccessToken: token },
     });
-    // console.log("CLIENT:", client);
 
     if (!client) {
       return [];
@@ -118,9 +116,6 @@ export class MessagesController {
       where: { clientAccessToken: token },
     });
 
-    // console.log("TOKEN:", token);
-    // console.log("CLIENT:", client);
-
     if (!client) return [];
 
     const appointments = await this.prisma.appointment.findMany({
@@ -131,10 +126,6 @@ export class MessagesController {
         startTime: 'asc',
       },
     });
-
-    // console.log("APPOINTMENTS:", appointments);
-
     return appointments;
   }
-
 }

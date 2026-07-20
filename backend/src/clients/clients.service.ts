@@ -22,17 +22,6 @@ export class ClientsService {
       throw new NotFoundException('Therapist not found');
     }
 
-    // return this.prisma.therapistClient.findMany({
-    //   where: {
-    //     therapistId: therapist.id,
-    //   },
-    //   include: {
-    //     client: true,
-    //   },
-    //   orderBy: {
-    //     id: 'desc',
-    //   },
-    // });
     return this.prisma.client.findMany({
       where: {
         therapistId: therapist.id,
@@ -42,7 +31,6 @@ export class ClientsService {
       },
     });
   }
-
 
   async createClient(dto: any, userId: number) {
     const token = randomUUID();
@@ -68,15 +56,6 @@ export class ClientsService {
         therapistId: therapist.id,
       },
     });
-
-    // // 2. създаваме връзката (ВАЖНО)
-    // await this.prisma.therapistClient.create({
-    //   data: {
-    //     therapistId: therapist.id,
-    //     clientId: client.id,
-    //   },
-    // });
-
     return client;
   }
 
@@ -100,8 +79,6 @@ export class ClientsService {
     if (!client || client.therapistId !== therapist.id) {
       throw new Error('Unauthorized');
     }
-
-    console.log("DELETE CLIENT:", id);
 
     // 🔥 взимаме всички срещи
     const appointments = await this.prisma.appointment.findMany({

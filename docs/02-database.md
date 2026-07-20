@@ -138,3 +138,88 @@ git diff
 5.
 
 Едва след това се предприемат промени по базата.
+
+# Database Update – Practice Locations & Working Hours
+
+## PracticeLocation
+
+Моделът `Location` е заменен с `PracticeLocation`.
+
+### Основни полета
+
+* `number` – уникален номер на локацията за конкретния терапевт.
+* `name`
+* `type`
+* `country`
+* `city`
+* `address`
+* `notes`
+* `isActive`
+
+Ограничение:
+
+* `@@unique([therapistId, number])`
+
+## WorkingInterval
+
+Работното време вече се съхранява като отделни интервали, а не като JSON.
+
+### Полета
+
+* `practiceLocationId`
+* `day`
+* `startMinutes`
+* `endMinutes`
+* `type`
+* `sortOrder`
+
+### Enum
+
+`WeekDay`
+
+* monday
+* tuesday
+* wednesday
+* thursday
+* friday
+* saturday
+* sunday
+
+`WorkingIntervalType`
+
+* work
+* break
+
+### Индекси
+
+* `@@index([practiceLocationId, day])`
+* `@@unique([practiceLocationId, day, sortOrder])`
+
+## Appointment
+
+Appointment вече има връзки към:
+
+* `Service`
+* `PracticeLocation`
+
+Това позволява:
+
+* цветът да се определя от услугата;
+* локацията да се определя от PracticeLocation;
+* бъдещи справки по услуги и локации.
+
+## Service
+
+Добавено поле:
+
+* `color`
+
+Цветът принадлежи на услугата и се използва за визуализация в календара.
+
+## ServiceLocation
+
+Връзката вече използва:
+
+* `practiceLocationId`
+
+вместо старото `locationId`.

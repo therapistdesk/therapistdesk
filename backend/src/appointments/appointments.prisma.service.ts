@@ -6,7 +6,6 @@ export class AppointmentsPrismaService {
   constructor(private prisma: PrismaService) {}
   
   async create(userId: number, data: any) {
-    console.log("CREATE RECEIVED:", data.startTime, typeof data.startTime);
     return this.prisma.appointment.create({
       data: {
         startTime: new Date(data.startTime),

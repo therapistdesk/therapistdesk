@@ -347,10 +347,6 @@ function App() {
   const baseDate = currentDate;
   const [messages, setMessages] = useState([]);
 
-  // console.log("TOKEN:", token);
-  // console.log("VERIFY:", verifyEmail);
-  // console.log("VERIFY:", localStorage.getItem("verifyEmail"));
-  // const verifyEmail = localStorage.getItem("verifyEmail");
   const [mode, setMode] = useState("login");
 
   useEffect(() => {
@@ -969,7 +965,12 @@ function App() {
 
   if (!token) {
     if (verifyEmail) return <VerifyEmail />;
-    if (mode === "register") return <RegisterApp />;
+    if (mode === "register")
+      return (
+        <RegisterApp
+          onBack={() => setMode("login")}
+        />
+      );
     if (mode === "reset") return <ResetPassword />;
 
     return (

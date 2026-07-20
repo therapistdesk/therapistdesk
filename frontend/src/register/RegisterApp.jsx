@@ -1,13 +1,45 @@
 import { useState } from "react";
+import {
+  addCategory,
+  updateCategory,
+  removeCategory,
+
+  addService,
+  updateService,
+  removeService,
+
+  validatePractice,
+
+  addLocation,
+  updateLocation,
+  removeLocation,
+
+  validateLocations,
+  createDefaultWorkingHours,
+  WEEK_DAYS,
+  WEEK_DAY_LABELS,
+  addWorkingInterval,
+  updateWorkingInterval,
+  removeWorkingInterval,
+  copyWorkingDay,
+  clearWorkingDay,
+  validateWorkingHours,
+  sortPracticeWorkingHours,
+} from "./RegisterHelpers";
+
+import RegisterWorkingHours from "./RegisterWorkingHours";
+import RegisterAccount from "./RegisterAccount";
+import RegisterPersonal from "./RegisterPersonal";
+import RegisterPractice from "./RegisterPractice";
+import RegisterLocations from "./RegisterLocations";
+import RegisterReview from "./RegisterReview";
 
 export default function RegisterApp({ onBack }) {
-  // console.log("REGISTER COMPONENT RENDERED");
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  // const [submitted, setSubmitted] = useState(false);
-  const TOTAL_STEPS = 1;
+  const TOTAL_STEPS = 6;
   const [form, setForm] = useState({
     basic: {
       firstName: "",
@@ -29,20 +61,24 @@ export default function RegisterApp({ onBack }) {
       logo: null,
     },
 
-    therapies: [],
-    certificates: [],
+    practice: {
+      categories: [],
+      locations: [],
+      certificates: [],
+      workingHours: createDefaultWorkingHours(),
+    },
 
-    workingHours: {},
-
-    notifications: {
-      message1: "Имате насрочена среща при ... за ...",
-      time1: 1440,
-      message2: "",
-      time2: 90,
+    settings: {
+      reminderOffsets: [1440, 90],
     },
 
     errors: {},
   });
+
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const selectedLocation = form.practice.locations.find(
+    (location) => location.id === selectedLocationId
+  );
 
   const next = () => {
     const errors = {};
@@ -117,9 +153,196 @@ export default function RegisterApp({ onBack }) {
     return "strong";
   };
 
-  const handleSubmit = async () => {
-    // console.log("SUBMIT START");
+  const handleAddCategory = () => {
+    setForm((prev) => ({
+      ...prev,
+      practice: addCategory(prev.practice),
+    }));
+  };
 
+  const handleUpdateCategory = (
+    index,
+    field,
+    value
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: updateCategory(
+        prev.practice,
+        index,
+        field,
+        value
+      ),
+    }));
+  };
+
+  const handleRemoveCategory = (categoryIndex) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: removeCategory(
+        prev.practice,
+        categoryIndex
+      ),
+    }));
+  };
+
+  const handleAddService = (categoryIndex) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: addService(
+        prev.practice,
+        categoryIndex
+      ),
+    }));
+  };
+
+  const handleUpdateService = (
+    categoryIndex,
+    serviceIndex,
+    field,
+    value
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: updateService(
+        prev.practice,
+        categoryIndex,
+        serviceIndex,
+        field,
+        value
+      ),
+    }));
+  };
+
+  const handleRemoveService = (
+    categoryIndex,
+    serviceIndex
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: removeService(
+        prev.practice,
+        categoryIndex,
+        serviceIndex
+      ),
+    }));
+  };
+
+  const handleAddLocation = () => {
+    setForm((prev) => ({
+      ...prev,
+      practice: addLocation(prev.practice),
+    }));
+  };
+
+  const handleUpdateLocation = (
+    locationId,
+    field,
+    value
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: updateLocation(
+        prev.practice,
+        locationId,
+        field,
+        value
+      ),
+    }));
+  };
+
+  const handleRemoveLocation = (locationId) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: removeLocation(
+        prev.practice,
+        locationId
+      ),
+    }));
+  };
+
+  const handleAddWorkingInterval = (
+    locationId,
+    day
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: addWorkingInterval(
+        prev.practice,
+        locationId,
+        day
+      ),
+    }));
+  };
+
+  const handleUpdateWorkingInterval = (
+    locationId,
+    day,
+    intervalIndex,
+    field,
+    value
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: updateWorkingInterval(
+        prev.practice,
+        locationId,
+        day,
+        intervalIndex,
+        field,
+        value
+      ),
+    }));
+  };
+
+  const handleRemoveWorkingInterval = (
+    locationId,
+    day,
+    intervalIndex
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: removeWorkingInterval(
+        prev.practice,
+        locationId,
+        day,
+        intervalIndex
+      ),
+    }));
+  };
+
+  const handleCopyWorkingDay = (
+    locationId,
+    sourceDay,
+    targetDays
+  ) => {
+
+    setForm((prev) => ({
+      ...prev,
+      practice: copyWorkingDay(
+        prev.practice,
+        locationId,
+        sourceDay,
+        targetDays
+      ),
+    }));
+  };
+
+  const handleClearWorkingDay = (
+    locationId,
+    day
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      practice: clearWorkingDay(
+        prev.practice,
+        locationId,
+        day
+      ),
+    }));
+  };
+
+  const handleSubmit = async () => {
     const payload = {
       email: form.basic.email,
       password: form.basic.password,
@@ -134,6 +357,7 @@ export default function RegisterApp({ onBack }) {
       country: form.profile.country,
       city: form.profile.city,
       address: form.profile.address,
+      practice: form.practice,
     };
 
     try {
@@ -147,12 +371,7 @@ export default function RegisterApp({ onBack }) {
         body: JSON.stringify(payload),
       });
 
-
-      // console.log("STATUS:", res.status);
-
       const data = await res.json();
-      // console.log("REGISTER RESPONSE:", data);
-
       if (!res.ok) {
         if (data.message === "User already exists") {
           setErrorMessage("An account with this e-mail already exists.");
@@ -163,26 +382,58 @@ export default function RegisterApp({ onBack }) {
       }
 
       if (data.requiresVerification) {
-        console.log("SAVE EMAIL:", form.basic.email);
+
+
         localStorage.setItem("verifyEmail", form.basic.email);
         localStorage.setItem("verifyPassword", form.basic.password);
+
         setSuccessMessage(
           "Registration successful. Verification code sent to your e-mail."
         );
 
         setTimeout(() => {
-          window.location.reload();
+
+          navigate("/verify");
         }, 1500);
 
         return;
       }
+      // ✅ TEST MODE
+      setSuccessMessage("Registration successful.");
 
-      alert("Unexpected response");
+      setTimeout(() => {
+        localStorage.removeItem("verifyEmail");
+        localStorage.removeItem("verifyPassword");
+        onBack();
+      }, 1000);
+
     } catch (err) {
       console.error("REGISTER ERROR:", err);
       throw err;
       alert("Register failed");
     }
+  };
+
+  const handleWorkingHoursNext = () => {
+    const sortedPractice = sortPracticeWorkingHours(
+      form.practice
+    );
+
+    const result = validateWorkingHours(
+      sortedPractice.locations
+    );
+
+    if (!result.valid) {
+      alert(result.errors[0].message);
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      practice: sortedPractice,
+    }));
+
+    next();
   };
 
   return (
@@ -191,472 +442,84 @@ export default function RegisterApp({ onBack }) {
       <div>Step {step} of 6</div>
 
       {step === 1 && (
-        <>
-          {/* <input
-            placeholder="First name *"
-            value={form.basic.firstName}
-            onChange={(e) =>
-              handleChange("basic", "firstName", e.target.value)
-            }
-            style={{
-              border: form.errors.firstName
-                ? "1px solid red"
-                : "1px solid #ccc",
-            }}
-          />
-          <br /><br />
-          {form.errors.firstName && (
-            <div style={{ color: "red", fontSize: 12 }}>
-              {form.errors.firstName}
-            </div>
-          )} */}
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              placeholder="First name *"
-              value={form.basic.firstName}
-              onChange={(e) =>
-                handleChange("basic", "firstName", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.firstName
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            {form.errors.firstName && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.firstName}
-              </div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              placeholder="Middle name"
-              value={form.basic.middleName}
-              onChange={(e) =>
-                handleChange("basic", "middleName", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: "1px solid #ccc",
-              }}
-            />
-          </div>
-
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              placeholder="Last name *"
-              value={form.basic.lastName}
-              onChange={(e) =>
-                handleChange("basic", "lastName", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.lastName
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            {form.errors.lastName && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.lastName}
-              </div>
-            )}
-          </div>
-
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              placeholder="Email *"
-              value={form.basic.email}
-              onChange={(e) =>
-                handleChange("basic", "email", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.email
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            {form.errors.email && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.email}
-              </div>
-            )}
-          </div>
-
-
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              placeholder="Phone *"
-              value={form.basic.phone}
-              onChange={(e) =>
-                handleChange("basic", "phone", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.phone
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            {form.errors.phone && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.phone}
-              </div>
-            )}
-          </div>
-
-
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password *"
-              value={form.basic.password}
-              onChange={(e) =>
-                handleChange("basic", "password", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.password
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-                color: "#666",
-                marginTop: 6,
-              }}
-            >
-              Strength: {getPasswordStrength(form.basic.password)}
-            </div>
-
-            {form.errors.password && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.password}
-              </div>
-            )}
-          </div>
-
-
-          <div style={{ marginBottom: 18 }}>
-            <input
-              name="confirmPassword"
-              type="password"
-              placeholder="Confirm password *"
-              value={form.basic.confirmPassword}
-              onChange={(e) =>
-                handleChange("basic", "confirmPassword", e.target.value)
-              }
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                padding: "10px 12px",
-                fontSize: 15,
-                borderRadius: 8,
-                boxSizing: "border-box",
-                border: form.errors.confirmPassword
-                  ? "1px solid red"
-                  : "1px solid #ccc",
-              }}
-            />
-
-            {form.errors.confirmPassword && (
-              <div
-                style={{
-                  color: "red",
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {form.errors.confirmPassword}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => {
-              if (TOTAL_STEPS === 1) {
-                handleSubmit();
-              } else {
-                next();
-              }
-            }}
-          >
-            {TOTAL_STEPS === 1 ? "Create account" : "Next"}
-          </button>
-
-          {errorMessage && (
-            <div
-              style={{
-                marginTop: 12,
-                color: "#dc2626",
-                fontSize: 14,
-                textAlign: "center",
-                maxWidth: 320,
-              }}
-            >
-              {errorMessage}
-            </div>
-          )}
-
-          {successMessage && (
-            <div
-              style={{
-                marginTop: 12,
-                color: "#16a34a",
-                fontSize: 14,
-                textAlign: "center",
-                maxWidth: 320,
-              }}
-            >
-              {successMessage}
-            </div>
-          )}
-
-        </>
+        <RegisterAccount
+          form={form}
+          handleChange={handleChange}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          getPasswordStrength={getPasswordStrength}
+          TOTAL_STEPS={TOTAL_STEPS}
+          next={next}
+          handleSubmit={handleSubmit}
+          errorMessage={errorMessage}
+          successMessage={successMessage}
+        />
       )}
-
-
-
-      <button
-        onClick={() => {
-          window.location.reload();
-        }}
-      >
-        Back to Login
-      </button>
-
-
 
       {step === 2 && (
-        <>
-          <div>
-            Gender *
-          </div>
-
-          <select
-            value={form.profile.gender}
-            onChange={(e) =>
-              handleChange("profile", "gender", e.target.value)
-            }
-          >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-
-          <br /><br />
-
-          <input
-            placeholder="Birth date"
-            value={form.profile.birthDate}
-            onChange={(e) =>
-              handleChange("profile", "birthDate", e.target.value)
-            }
-          />
-
-          <br /><br />
-
-          <input
-            placeholder="Country *"
-            value={form.profile.country}
-            onChange={(e) =>
-              handleChange("profile", "country", e.target.value)
-            }
-            style={{
-              border:
-                form.errors.country ? "1px solid red" : "1px solid #ccc",
-            }}
-          />
-
-          {form.errors.country && (
-            <div style={{ color: "red", fontSize: 12 }}>
-              {form.errors.country}
-            </div>
-          )}
-
-          <br />
-
-          <input
-            placeholder="City *"
-            value={form.profile.city}
-            onChange={(e) =>
-              handleChange("profile", "city", e.target.value)
-            }
-            style={{
-              border:
-                form.errors.city ? "1px solid red" : "1px solid #ccc",
-            }}
-          />
-
-          {form.errors.city && (
-            <div style={{ color: "red", fontSize: 12 }}>
-              {form.errors.city}
-            </div>
-          )}
-
-          <br /><br />
-
-          <input
-            placeholder="Address"
-            value={form.profile.address}
-            onChange={(e) =>
-              handleChange("profile", "address", e.target.value)
-            }
-          />
-
-          <br /><br />
-
-          <button onClick={back}>Back</button>
-          <button onClick={next}>Next</button>
-        </>
+        <RegisterPersonal
+          form={form}
+          handleChange={handleChange}
+          back={back}
+          next={next}
+        />
       )}
 
-      {/* <div style={{ fontSize: 12, color: "#666", marginTop: 10 }}>
-        Almost done — click Next to review your data
-      </div> */}
 
       {step === 3 && (
-        <>
-          {/* <h4>Review</h4>
-          <pre>{JSON.stringify(form, null, 2)}</pre> */}
+        <RegisterPractice
+          form={form}
+          handleAddCategory={handleAddCategory}
+          handleRemoveCategory={handleRemoveCategory}
+          handleUpdateCategory={handleUpdateCategory}
+          handleAddService={handleAddService}
+          handleRemoveService={handleRemoveService}
+          handleUpdateService={handleUpdateService}
+          validatePractice={validatePractice}
+          next={next}
+          back={back}
+        />
+      )}
 
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 420,
-              margin: "0 auto",
-              textAlign: "left",
-              background: "#fff",
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              padding: 20,
-              marginBottom: 20,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Review your information</h3>
+      {step === 4 && (
+        <RegisterLocations
+          form={form}
+          handleAddLocation={handleAddLocation}
+          handleRemoveLocation={handleRemoveLocation}
+          handleUpdateLocation={handleUpdateLocation}
+          validateLocations={validateLocations}
+          back={back}
+          next={next}
+        />
+      )}
 
-            <div
-              style={{
-                fontWeight: 600,
-                marginBottom: 10,
-                borderBottom: "1px solid #eee",
-                paddingBottom: 6,
-              }}
-            >
-              Basic information
-            </div>
+      {step === 5 && (
+        <RegisterWorkingHours
+          form={form}
+          selectedLocation={selectedLocation}
+          selectedLocationId={selectedLocationId}
+          setSelectedLocationId={setSelectedLocationId}
 
-            <div><strong>First name:</strong> {form.basic.firstName}</div>
-            <div><strong>Middle name:</strong> {form.basic.middleName || "-"}</div>
-            <div><strong>Last name:</strong> {form.basic.lastName}</div>
-            <div><strong>Email:</strong> {form.basic.email}</div>
-            <div><strong>Phone:</strong> {form.basic.phone}</div>
-          </div>
+          WEEK_DAYS={WEEK_DAYS}
+          WEEK_DAY_LABELS={WEEK_DAY_LABELS}
 
-          <button onClick={back}>Back</button>
+          handleAddWorkingInterval={handleAddWorkingInterval}
+          handleUpdateWorkingInterval={handleUpdateWorkingInterval}
+          handleRemoveWorkingInterval={handleRemoveWorkingInterval}
+          handleCopyWorkingDay={handleCopyWorkingDay}
+          handleClearWorkingDay={handleClearWorkingDay}
 
-          <button
-            onClick={() => {
-              console.log("CLICK REGISTER");
+          back={back}
+          next={handleWorkingHoursNext}
+        />
+      )}
 
-              handleSubmit();
-            }}
-            style={{
-              marginLeft: 10,
-              padding: "10px 20px",
-              background: "green",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Register
-          </button>
-        </>
+      {step === 6 && (
+        <RegisterReview
+          form={form}
+          back={back}
+          handleSubmit={handleSubmit}
+        />
       )}
 
       {/* <div style={{ marginBottom: 10, fontWeight: "bold" }}>

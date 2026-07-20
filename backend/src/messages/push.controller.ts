@@ -30,7 +30,6 @@ export class PushController {
       });
 
       if (!client) {
-        console.log("CLIENT NOT FOUND");
         return;
       }
 
@@ -42,7 +41,6 @@ export class PushController {
 
     // Проверка след нормализиране
     if (!finalEndpoint || !finalP256dh || !finalAuth || !finalClientId) {
-      console.log("SKIP INVALID SUBSCRIBE CALL");
       return;
     }
 
@@ -62,9 +60,6 @@ export class PushController {
         auth: finalAuth,
       },
     });
-
-    console.log("SUBSCRIPTION SAVED");
-
     return { ok: true };
   }
 }

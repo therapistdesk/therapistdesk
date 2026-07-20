@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TherapistsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createProfile(userId: number, data: any) {
     return this.prisma.therapist.create({
@@ -26,7 +26,7 @@ export class TherapistsService {
       throw new Error('Therapist not found');
     }
 
-    return this.prisma.therapistLocation.create({
+    return this.prisma.Location.create({
       data: {
         name: data.name,
         city: data.city,
@@ -43,9 +43,14 @@ export class TherapistsService {
     return this.prisma.therapist.findUnique({
       where: { userId: userId },
       include: {
-        locations: true,
-        services: true,
-      },
+        practiceLocations: true,
+        categories: {
+          include: {
+            services: true,
+          },
+        },
+        settings: true,
+      }
     });
   }
 }

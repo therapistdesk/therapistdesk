@@ -51,8 +51,6 @@ export class ClientsController {
 
   @Delete(':id')
   async deleteClient(@Param('id') id: string, @Req() req: any) {
-    console.log("REQ.USER:", req.user); // 👈 добави това
-
     return this.clientsService.deleteClient(Number(id), req.user.userId);
   }
 
@@ -77,10 +75,7 @@ export class ClientsController {
     @Body() body: { alias: string },
     @Req() req
   ) {
-    console.log("REQ USER:", req.user); // 👈 DEBUG
-
     const userId = req.user.userId || req.user.sub;
-
     const therapist = await this.prisma.therapist.findUnique({
       where: { userId },
     });
@@ -89,17 +84,6 @@ export class ClientsController {
       throw new NotFoundException('Therapist not found');
     }
 
-    // return this.prisma.therapistClient.update({
-    //   where: {
-    //     therapistId_clientId: {
-    //       therapistId: therapist.id,
-    //       clientId: Number(clientId),
-    //     },
-    //   },
-    //   data: {
-    //     alias: body.alias,
-    //   },
-    // });
     return this.prisma.client.update({
       where: {
         id: Number(clientId),

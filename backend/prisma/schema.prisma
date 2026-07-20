@@ -29,27 +29,89 @@ model Therapist {
   birthDate    DateTime?
   appointments Appointment[]
   clients      Client[]
-  services     Service[]
   user         User                @relation(fields: [userId], references: [id])
-  locations    TherapistLocation[]
+  practiceLocations PracticeLocation[]
+  categories   Category[]
   settings     TherapistSettings?
 }
 
-model TherapistLocation {
+model PracticeLocation  {
   id          Int       @id @default(autoincrement())
   therapistId Int
   name        String
   country     String
   city        String
   address     String
+  type        String
+  notes       String?
+  isActive    Boolean @default(true)
+  services    ServiceLocation[]
+  workingIntervals WorkingInterval[]
+  appointments Appointment[]
   therapist   Therapist @relation(fields: [therapistId], references: [id])
+  number      Int
+
+  @@unique([therapistId, number])
+}
+
+enum WorkingIntervalType {
+  work
+  break
+}
+
+enum WeekDay {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+model WorkingInterval {
+  id Int @id @default(autoincrement())
+
+  practiceLocationId Int
+
+  practiceLocation PracticeLocation  @relation(fields: [practiceLocationId], references: [id], onDelete: Cascade)
+
+  day WeekDay
+
+  startMinutes Int
+  endMinutes   Int
+
+  type WorkingIntervalType
+
+  sortOrder Int @default(0)
+
+  @@index([practiceLocationId, day])
+
+  @@unique([practiceLocationId, day, sortOrder])
 }
 
 model Service {
   id          Int       @id @default(autoincrement())
+
+  categoryId  Int
+  category    Category  @relation(fields: [categoryId], references: [id])
+
   name        String
-  therapistId Int
-  therapist   Therapist @relation(fields: [therapistId], references: [id])
+  description String?
+  locations   ServiceLocation[]
+  appointments Appointment[]
+
+  defaultDurationMinutes Int?
+  defaultPrice           Decimal? @db.Decimal(10,2)
+  currency               String   @default("Euro")
+
+  color       String @default("violet")
+
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Client {
@@ -92,6 +154,12 @@ model Appointment {
   therapist     Therapist        @relation(fields: [therapistId], references: [id])
   messages      Message[]
   notesRelation Note[]
+
+  practiceLocationId Int?
+  practiceLocation PracticeLocation? @relation(fields: [practiceLocationId], references: [id])
+
+  serviceId Int?
+  service Service? @relation(fields: [serviceId], references: [id])  
 }
 
 model Note {
@@ -149,4 +217,34 @@ model RecurringSeries {
   until        DateTime?
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  therapistId Int
+
+  name        String
+  description String?
+
+  color       String?
+
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+
+  services    Service[]
+}
+
+model ServiceLocation {
+  serviceId  Int
+  practiceLocationId  Int
+
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  practiceLocation PracticeLocation @relation(fields: [practiceLocationId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, practiceLocationId])
 }

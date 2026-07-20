@@ -113,4 +113,13 @@ Verified successfully:
 \* appointment persistence after logout/login
 
 
+## 2026-07-20
 
+### Registration
+
+* Completed Step 6 – Review & Register.
+* Registration now persists the complete therapist practice model.
+* Added RegisterReview summary screen.
+* Added backend persistence for PracticeLocation, ServiceLocation and WorkingInterval.
+* Fixed ServiceLocation mapping for registrations with multiple categories.
+* Verified successful registration with multiple categories, services, locations and working intervals.

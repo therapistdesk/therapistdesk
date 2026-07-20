@@ -21,8 +21,6 @@ export class EmailService {
       subject: 'Verify your email',
       text: `Your verification code is: ${code}`,
     });
-
-    console.log(`📧 Verification email sent to ${to}`);
   }
 
   // ✅ Reminder (оставяме го, но по-унифициран)
@@ -33,7 +31,5 @@ export class EmailService {
       subject,
       text,
     });
-
-    console.log(`📧 Reminder email sent to ${to}`);
   }
 }

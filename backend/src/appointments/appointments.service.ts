@@ -30,9 +30,6 @@ function generateDates({ startTime, endTime, until, count }) {
   const baseEnd = new Date(endTime);
   const endDate = until ? new Date(until) : null;
 
-  // console.log("START:", startTime);
-  // console.log("CURRENT INIT:", current);
-
   if (isNaN(current.getTime()) || isNaN(baseEnd.getTime())) {
     console.log("❌ INVALID DATE");
     return [];
@@ -41,8 +38,6 @@ function generateDates({ startTime, endTime, until, count }) {
   const safeCount = count && count > 0 ? count : 1;
 
   for (let i = 0; i < safeCount; i++) {
-    // console.log("---- LOOP ----", i);
-    // console.log("CURRENT:", current);
 
     // stop по дата
     if (endDate && current > endDate) {
@@ -54,11 +49,6 @@ function generateDates({ startTime, endTime, until, count }) {
 
     const end = new Date(current);
     end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), 0, 0);
-
-    // console.log("✅ CREATING:", {
-    //   start: start.toISOString(),
-    //   end: end.toISOString(),
-    // });
 
     result.push({
       startTime: start,
@@ -76,8 +66,6 @@ function generateDates({ startTime, endTime, until, count }) {
       0
     );
   }
-
-  // console.log("🎯 RESULT COUNT:", result.length);
 
   return result;
 }
@@ -105,8 +93,6 @@ export class AppointmentsService {
     if (isNaN(Number(dto.clientId))) {
       throw new BadRequestException("INVALID CLIENT ID");
     }
-
-    // console.log("CREATE DTO:", dto);
 
     try {
       // ✅ СЪЗДАВАМЕ СРЕЩАТА
@@ -158,37 +144,7 @@ export class AppointmentsService {
         { type: 'reminder_24h', minutes: 24 * 60 },
         { type: 'reminder_1h', minutes: 60 },
       ];
-      // ------------------
-      // 🔥 AUTO REMINDERS
-      // await this.prisma.message.createMany({
-      //   data: [
-      //     {
-      //       clientId: appointment.clientId,
-      //       therapistId: appointment.therapistId,
-      //       appointmentId: appointment.id,
-      //       type: 'reminder_72h', // 🔥
-      //       sendAt: new Date(start.getTime() - 72 * 60 * 60 * 1000),
-      //       status: 'pending',
-      //     },
-      //     {
-      //       clientId: appointment.clientId,
-      //       therapistId: appointment.therapistId,
-      //       appointmentId: appointment.id,
-      //       type: 'reminder_24h', // 🔥
-      //       sendAt: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-      //       status: 'pending',
-      //     },
-      //     {
-      //       clientId: appointment.clientId,
-      //       therapistId: appointment.therapistId,
-      //       appointmentId: appointment.id,
-      //       type: 'reminder_1h', // 🔥
-      //       sendAt: new Date(start.getTime() - 60 * 60 * 1000),
-      //       status: 'pending',
-      //     },
-      //   ],
-      // });
-
+      
       for (const r of reminderConfigs) {
         const sendAt = new Date(
           start.getTime() - r.minutes * 60 * 1000
@@ -218,15 +174,12 @@ export class AppointmentsService {
       return appointment;
 
     } catch (err) {
-      console.error("CREATE ERROR BACKEND:", err);
       throw err;
     }
   }
 
 
   async findByDate(date: string, userId: number) {
-    // console.log("DATE REQUEST:", date);
-
     return this.prisma.appointment.findMany({
       where: {
         therapistId: userId,
@@ -323,15 +276,6 @@ export class AppointmentsService {
       }
     });
 
-    // console.log(
-    //   "APPOINTMENTS:",
-    //   appointments.map(a => ({
-    //     id: a.id,
-    //     status: a.status,
-    //     cancelledBy: a.cancelledBy
-    //   }))
-    // );
-
     // 🔥 махаме оригиналите ако има exception
     const exceptionMap = new Map();
 
@@ -344,20 +288,7 @@ export class AppointmentsService {
       }
     });
 
-    // return appointments.filter(a => {
-    //   if (!a.seriesId) return true;
-
-    //   if (!a.isException) {
-    //     return !exceptionMap.has(
-    //       new Date(a.startTime).toISOString()
-    //     );
-    //   }
-
-    //   return true;
-    // });
-
     return appointments;
-
     // -------
 
   }
@@ -403,15 +334,7 @@ export class AppointmentsService {
     userIdMaybe?: number,
   ) {
 
-    // console.log("RAW INPUT:", {
-    //   tokenOrStatus,
-    //   statusMaybe,
-    //   reason,
-    //   userIdMaybe,
-    // });
-
     // ✅ ясен boolean
-    // const isClientCall = typeof statusMaybe === 'string';
     const isClientCall = !userIdMaybe;
 
     let status: string;
@@ -425,24 +348,9 @@ export class AppointmentsService {
       cancelledBy = status === 'cancelled' ? 'therapist' : null;
     }
 
-    // 🔍 лог 1: вход
-    // console.log("UPDATE INPUT:", {
-    //   id,
-    //   isClientCall,
-    //   status,
-    //   cancelledBy,
-    // });
-
     const existing = await this.prisma.appointment.findUnique({
       where: { id },
     });
-
-    // 🔍 лог 2: какво има в DB преди update
-    // console.log("BEFORE UPDATE:", {
-    //   id,
-    //   existingStatus: existing?.status,
-    //   existingCancelledBy: existing?.cancelledBy,
-    // });
 
     // ❗ защита
     if (
@@ -464,13 +372,6 @@ export class AppointmentsService {
             : null,
       },
     });
-
-    // 🔍 лог 3: резултат след update
-    // console.log("AFTER UPDATE:", {
-    //   id: updated.id,
-    //   status: updated.status,
-    //   cancelledBy: updated.cancelledBy,
-    // });
 
     // 🔥 стоп на reminders
     if (status === 'cancelled') {
@@ -497,8 +398,6 @@ export class AppointmentsService {
     if (!appointment) {
       throw new Error("Appointment not found");
     }
-
-    // console.log("APPOINTMENT CANCELLED");
 
     // 🔥 СПРИ REMINDERS
     await this.prisma.message.updateMany({
@@ -531,17 +430,10 @@ export class AppointmentsService {
       include: { client: true },
     });
 
-    // console.log("APPOINTMENT CANCELLED");
-
     // 🔥 СПРИ REMINDERS (старото поведение)
     await this.prisma.message.updateMany({
       where: {
-        // временно 120626
-        // appointment: {
-        //   connect: { id: appointment.id },
-        // },
         appointmentId: null,
-        // -------
         status: {
           in: ["sent", "pending"],
         },
