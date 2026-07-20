@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger  } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,7 +18,6 @@ function timeToMinutes(time: string): number {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -27,7 +26,6 @@ export class AuthService {
 
   async register(dto: any) {
     const { email, password } = dto;
-    this.logger.log(`REGISTER START: ${email}`);
     const existing = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -261,7 +259,7 @@ export class AuthService {
         },
       });
     }
-this.logger.log(`REGISTER SUCCESS: ${email}`);
+
     return {
       requiresVerification: !testMode,
     };
