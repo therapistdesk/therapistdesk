@@ -392,8 +392,7 @@ export default function RegisterApp({ onBack }) {
         );
 
         setTimeout(() => {
-
-          navigate("/verify");
+          window.location.reload();
         }, 1500);
 
         return;
