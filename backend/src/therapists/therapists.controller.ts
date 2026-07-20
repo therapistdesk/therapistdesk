@@ -13,10 +13,10 @@ create(@Req() req, @Body() body) {
   return this.service.createProfile(req.user.userId, body);
 }
 
-  @Post('location')
-addLocation(@Body() body) {
-  return this.service.addLocation(1, body); // временно userId=1
-}
+//   @Post('location')
+// addLocation(@Body() body) {
+//   return this.service.addLocation(1, body); // временно userId=1
+// }
 
 @Get('me')
 get(@Req() req) {

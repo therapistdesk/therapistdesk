@@ -17,27 +17,29 @@ export class TherapistsService {
     });
   }
 
-  async addLocation(userId: number, data: any) {
-    const therapist = await this.prisma.therapist.findUnique({
-      where: { userId: userId },
-    });
+  // async addLocation(userId: number, data: any) {
+  //   const therapist = await this.prisma.therapist.findUnique({
+  //     where: { userId: userId },
+  //   });
 
-    if (!therapist) {
-      throw new Error('Therapist not found');
-    }
+  //   if (!therapist) {
+  //     throw new Error('Therapist not found');
+  //   }
 
-    return this.prisma.Location.create({
-      data: {
-        name: data.name,
-        city: data.city,
-        address: data.address,
-        country: "Bulgaria",
-        therapist: {
-          connect: { id: therapist.id },
-        },
-      },
-    });
-  }
+  //   return this.prisma.practiceLocation.create({
+  //     data: {
+  //       therapistId: therapist.id,
+  //       name: data.name,
+  //       country: data.country ?? "Bulgaria",
+  //       city: data.city,
+  //       address: data.address,
+  //       type: data.type ?? "office",
+  //       number: data.number,
+  //       notes: data.notes ?? null,
+  //       isActive: true,
+  //     },
+  //   });
+  // }
 
   async getMyProfile(userId: number) {
     return this.prisma.therapist.findUnique({

@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { randomUUID } from 'crypto';
+import { WeekDay } from "@prisma/client";
 
 function timeToMinutes(time: string): number {
   if (!time) {
@@ -125,7 +126,7 @@ export class AuthService {
       },
     });
 
-let serviceIndex = 0;
+    let serviceIndex = 0;
     for (let i = 0; i < categories.length; i++) {
       const category = categories[i];
       const savedCategory = savedCategories[i];
@@ -195,14 +196,14 @@ let serviceIndex = 0;
     }
     // /////////////////////
 
-    const weekDays = [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-      "sunday",
+    const weekDays: WeekDay[] = [
+      WeekDay.monday,
+      WeekDay.tuesday,
+      WeekDay.wednesday,
+      WeekDay.thursday,
+      WeekDay.friday,
+      WeekDay.saturday,
+      WeekDay.sunday,
     ];
     for (const location of dto.practice?.locations ?? []) {
       const savedLocation = savedPracticeLocations.find(
