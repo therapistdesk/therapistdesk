@@ -1,13 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateSettingsDto } from "./dto/update-settings.dto";
-import { UpdateServicesDto } from './dto/update-services.dto';
+import { UpdateServicesDto } from "./dto/update-services.dto";
 import { UpdateWorkingHoursDto } from "./dto/update-working-hours.dto";
+import { UpdateLocationDto } from "./dto/update-location.dto";
 
 function timeToMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number);
 
     return hours * 60 + minutes;
+
 }
 
 @Injectable()
