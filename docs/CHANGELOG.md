@@ -1,3 +1,25 @@
+## August 2026
+
+### Settings module completed
+
+Completed and stabilized:
+
+- My Profile
+- Practice Locations
+- Therapeutic Approaches & Services
+- Working Hours
+
+Working Hours now supports:
+
+- location-specific schedules;
+- multiple intervals per day;
+- work and break intervals;
+- adding, editing and removing intervals;
+- copying and clearing days;
+- Save / Cancel workflow;
+- preserving the selected location after save;
+- persistence and reload of saved schedules.
+
 \# Changelog
 
 

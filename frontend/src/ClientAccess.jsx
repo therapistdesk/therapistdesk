@@ -55,6 +55,18 @@ export default function ClientAccess() {
         setClient(data);
     };
 
+    const actionButtonStyle = {
+        color: "#fff",
+        border: "none",
+        borderRadius: 5,
+        padding: "6px 12px",
+        width: 90,
+        textAlign: "center",
+        cursor: "pointer",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+        transition: "all 0.1s ease",
+    };
+
     useEffect(() => {
         if (!token) return;
 
@@ -210,20 +222,217 @@ export default function ClientAccess() {
         (a) => getStart(a) < now && a.status !== "scheduled"
     );
 
+    // const renderSection = (title, data) => {
+    //     if (data.length === 0) return null;
+
+    //     const updateStatus = async (id, status, reason) => {
+    //         const res = await fetch(
+    //             `${API_URL}/appointments/${id}/status/public?token=${token}`,
+    //             {
+    //                 method: "PATCH",
+    //                 headers: { "Content-Type": "application/json" },
+    //                 body: JSON.stringify({ status, reason }),
+    //             }
+    //         );
+
+    //         // if (!res.ok) throw new Error();
+    //         if (!res.ok) {
+    //             console.log(await res.text());
+    //             throw new Error();
+    //         }
+
+    //         await fetch(
+    //             `${API_URL}/appointments/${id}/seen?token=${token}`,
+    //             {
+    //                 method: "PATCH",
+    //             }
+    //         );
+
+    //         await loadClient();
+    //     };
+    //     console.log("RAW EVENTS:", data);
+
+
+    //     return (
+    //         <div style={{ marginBottom: 24 }}>
+    //             <h3 style={{ marginBottom: 10 }}>{title}</h3>
+
+    //             {[...data]
+    //                 .sort((a, b) => {
+    //                     if (!a.seenAt && b.seenAt) return -1;
+    //                     if (a.seenAt && !b.seenAt) return 1;
+    //                     return new Date(a.startTime) - new Date(b.startTime);
+    //                 })
+    //                 .map((a) => {
+    //                     console.log("EVENT:", a.id, a.status, a.cancelledBy);
+    //                     const isScheduled = a.status === "scheduled";
+    //                     const isCancelled = a.status === "cancelled";
+
+    //                     const isTherapistCancelled =
+    //                         a.status === "cancelled" && a.cancelledBy !== "client";
+
+    //                     const isClientCancelled =
+    //                         isCancelled && a.cancelledBy === "client";
+    //                     // console.log("APPOINTMENT:", a);
+    //                     return (
+    //                         <div
+    //                             key={a.id}
+    //                             style={{
+    //                                 border: "1px solid #e5e7eb",
+    //                                 padding: 16,
+    //                                 marginBottom: 12,
+    //                                 borderRadius: 12,
+    //                                 background: "#fff",
+    //                                 boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+    //                                 opacity: a.seenAt ? 0.6 : 1,
+    //                             }}
+    //                         >
+
+    //                             {/* 🔥 НОВО САМО АКО НЕ Е ВИДЯНА И НЕ Е CANCELLED */}
+    //                             {!a.seenAt && !isCancelled && (
+    //                                 <div style={{
+    //                                     fontSize: 12,
+    //                                     color: "#2563eb",
+    //                                     fontWeight: 600,
+    //                                     marginBottom: 6
+    //                                 }}>
+    //                                     ● НОВО
+    //                                 </div>
+    //                             )}
+
+    //                             <div style={{ fontSize: 16, fontWeight: 500 }}>
+    //                                 Среща с {client.therapistName || "вашия терапевт"}
+    //                             </div>
+
+    //                             <div style={{ fontSize: 14, color: "#555" }}>
+    //                                 {new Date(a.startTime).toLocaleString()}
+    //                             </div>
+
+    //                             <div style={{
+    //                                 fontSize: 12,
+    //                                 fontWeight: 500,
+    //                                 marginTop: 6,
+    //                                 color:
+    //                                     isScheduled
+    //                                         ? "#16a34a"
+    //                                         : isCancelled
+    //                                             ? "#dc2626"
+    //                                             : "#6b7280"
+    //                             }}>
+    //                                 {isScheduled && "Насрочена"}
+    //                                 {isCancelled && "Отменена"}
+    //                             </div>
+
+    //                             {a.cancelReason && (
+    //                                 <div style={{
+    //                                     fontSize: 13,
+    //                                     marginTop: 8,
+    //                                     padding: 8,
+    //                                     background: "#f9fafb",
+    //                                     borderRadius: 8
+    //                                 }}>
+    //                                     <strong>Причина:</strong> {a.cancelReason}
+    //                                 </div>
+    //                             )}
+
+    //                             {/* 🔥 БУТОНИ */}
+    //                             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+
+    //                                 {/* 🔒 ако терапевт е отменил → няма бутони */}
+    //                                 {!isTherapistCancelled && (
+    //                                     <>
+    //                                         {/* ✅ Потвърждавам (ако НЕ е scheduled) */}
+    //                                         {!isScheduled && !isTherapistCancelled && (
+    //                                             <button
+    //                                                 style={{
+    //                                                     flex: 1,
+    //                                                     padding: "10px 12px",
+    //                                                     borderRadius: 8,
+    //                                                     border: "none",
+    //                                                     background: "#16a34a",
+    //                                                     color: "#fff",
+    //                                                     fontWeight: 500,
+    //                                                     cursor: "pointer"
+    //                                                 }}
+    //                                                 onClick={async () => {
+    //                                                     try {
+    //                                                         await updateStatus(a.id, "confirmed");
+    //                                                     } catch {
+    //                                                         alert("Грешка");
+    //                                                     }
+    //                                                 }}
+    //                                             >
+    //                                                 Потвърждавам
+    //                                             </button>
+    //                                         )}
+
+    //                                         {/* ❌ Отменям (ако НЕ е отменена от клиента) */}
+    //                                         {!isClientCancelled && !isTherapistCancelled && (
+    //                                             <button
+    //                                                 style={{
+    //                                                     flex: 1,
+    //                                                     padding: "10px 12px",
+    //                                                     borderRadius: 8,
+    //                                                     border: "none",
+    //                                                     background: "#dc2626",
+    //                                                     color: "#fff",
+    //                                                     fontWeight: 500,
+    //                                                     cursor: "pointer"
+    //                                                 }}
+    //                                                 onClick={async () => {
+    //                                                     const reason = prompt("Причина за отмяна:");
+    //                                                     if (reason === null) return;
+
+    //                                                     if (reason.trim() === "") {
+    //                                                         alert("Моля, въведете причина");
+    //                                                         return;
+    //                                                     }
+
+    //                                                     try {
+    //                                                         await updateStatus(a.id, "cancelled", reason);
+    //                                                     } catch {
+    //                                                         alert("Грешка");
+    //                                                     }
+    //                                                 }}
+    //                                             >
+    //                                                 Отменям
+    //                                             </button>
+    //                                         )}
+    //                                     </>
+    //                                 )}
+
+    //                             </div>
+
+    //                             {/* 🔴 статус текст */}
+    //                             {a.status === "cancelled" && a.cancelledBy === "therapist" && (
+    //                                 <div>Отменена от терапевт</div>
+    //                             )}
+
+    //                         </div>
+    //                     );
+    //                 })}
+    //         </div>
+    //     );
+    // };
+
     const renderSection = (title, data) => {
-        if (data.length === 0) return null;
+        if (!data || data.length === 0) return null;
 
         const updateStatus = async (id, status, reason) => {
             const res = await fetch(
                 `${API_URL}/appointments/${id}/status/public?token=${token}`,
                 {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status, reason }),
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        status,
+                        reason,
+                    }),
                 }
             );
 
-            // if (!res.ok) throw new Error();
             if (!res.ok) {
                 console.log(await res.text());
                 throw new Error();
@@ -238,167 +447,276 @@ export default function ClientAccess() {
 
             await loadClient();
         };
-        console.log("RAW EVENTS:", data);
-
 
         return (
             <div style={{ marginBottom: 24 }}>
-                <h3 style={{ marginBottom: 10 }}>{title}</h3>
+                <h3 style={{ marginBottom: 10 }}>
+                    {title}
+                </h3>
 
-                {[...data]
-                    .sort((a, b) => {
-                        if (!a.seenAt && b.seenAt) return -1;
-                        if (a.seenAt && !b.seenAt) return 1;
-                        return new Date(a.startTime) - new Date(b.startTime);
-                    })
-                    .map((a) => {
-                        console.log("EVENT:", a.id, a.status, a.cancelledBy);
-                        const isScheduled = a.status === "scheduled";
-                        const isCancelled = a.status === "cancelled";
-
-                        const isTherapistCancelled =
-                            a.status === "cancelled" && a.cancelledBy !== "client";
-
-                        const isClientCancelled =
-                            isCancelled && a.cancelledBy === "client";
-                        // console.log("APPOINTMENT:", a);
-                        return (
-                            <div
-                                key={a.id}
-                                style={{
-                                    border: "1px solid #e5e7eb",
-                                    padding: 16,
-                                    marginBottom: 12,
-                                    borderRadius: 12,
-                                    background: "#fff",
-                                    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                                    opacity: a.seenAt ? 0.6 : 1,
-                                }}
-                            >
-
-                                {/* 🔥 НОВО САМО АКО НЕ Е ВИДЯНА И НЕ Е CANCELLED */}
-                                {!a.seenAt && !isCancelled && (
-                                    <div style={{
-                                        fontSize: 12,
-                                        color: "#2563eb",
+                <div
+                    style={{
+                        overflowX: "auto",
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                    }}
+                >
+                    <table
+                        style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            background: "#fff",
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th
+                                    style={{
+                                        padding: 10,
+                                        textAlign: "left",
                                         fontWeight: 600,
-                                        marginBottom: 6
-                                    }}>
-                                        ● НОВО
-                                    </div>
-                                )}
+                                        fontSize: 14,
+                                        background: "#f5f5f5",
+                                        width: 150,
+                                    }}
+                                >
+                                    Date
+                                </th>
+                                <th
+                                    style={{
+                                        padding: 10,
+                                        textAlign: "left",
+                                        fontWeight: 600,
+                                        fontSize: 14,
+                                        background: "#f5f5f5",
+                                    }}
+                                >
+                                    Time
+                                </th>
+                                <th
+                                    style={{
+                                        padding: 10,
+                                        textAlign: "left",
+                                        fontWeight: 600,
+                                        fontSize: 14,
+                                        background: "#f5f5f5",
+                                    }}
+                                >
+                                    Status
+                                </th>
+                                <th
+                                    style={{
+                                        padding: 10,
+                                        textAlign: "left",
+                                        fontWeight: 600,
+                                        fontSize: 14,
+                                        background: "#f5f5f5",
+                                    }}
+                                >
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
 
-                                <div style={{ fontSize: 16, fontWeight: 500 }}>
-                                    Среща с {client.therapistName || "вашия терапевт"}
-                                </div>
+                        <tbody>
+                            {[...data]
+                                .sort(
+                                    (a, b) =>
+                                        new Date(a.startTime) - new Date(b.startTime)
+                                )
+                                .map((a) => {
+                                    const isNew =
+                                        a.status !== "cancelled" &&
+                                        !a.seenAt;
 
-                                <div style={{ fontSize: 14, color: "#555" }}>
-                                    {new Date(a.startTime).toLocaleString()}
-                                </div>
+                                    return (
+                                        <tr key={a.id}>
+                                            <td
+                                                style={{
+                                                    padding: 10,
+                                                    borderTop: "1px solid #eee",
+                                                }}
+                                            >
+                                                {new Date(a.startTime).toLocaleDateString("en-US", {
+                                                    weekday: "short",
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                })}
+                                            </td>
 
-                                <div style={{
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    marginTop: 6,
-                                    color:
-                                        isScheduled
-                                            ? "#16a34a"
-                                            : isCancelled
-                                                ? "#dc2626"
-                                                : "#6b7280"
-                                }}>
-                                    {isScheduled && "Насрочена"}
-                                    {isCancelled && "Отменена"}
-                                </div>
+                                            <td
+                                                style={{
+                                                    padding: 10,
+                                                    borderTop: "1px solid #eee",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {`${new Date(a.startTime).toLocaleTimeString("bg-BG", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })} - ${new Date(a.endTime).toLocaleTimeString("bg-BG", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}`}
+                                            </td>
 
-                                {a.cancelReason && (
-                                    <div style={{
-                                        fontSize: 13,
-                                        marginTop: 8,
-                                        padding: 8,
-                                        background: "#f9fafb",
-                                        borderRadius: 8
-                                    }}>
-                                        <strong>Причина:</strong> {a.cancelReason}
-                                    </div>
-                                )}
+                                            <td
+                                                style={{
+                                                    padding: 10,
+                                                    borderTop: "1px solid #eee",
+                                                }}
+                                            >
+                                                {isNew && (
+                                                    <span
+                                                        style={{
+                                                            display: "inline-block",
+                                                            marginRight: 8,
+                                                            padding: "3px 7px",
+                                                            borderRadius: 5,
+                                                            fontSize: 11,
+                                                            fontWeight: 700,
+                                                            background: "#fff3e0",
+                                                            color: "#ef6c00",
+                                                        }}
+                                                    >
+                                                        NEW
+                                                    </span>
+                                                )}
 
-                                {/* 🔥 БУТОНИ */}
-                                <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-
-                                    {/* 🔒 ако терапевт е отменил → няма бутони */}
-                                    {!isTherapistCancelled && (
-                                        <>
-                                            {/* ✅ Потвърждавам (ако НЕ е scheduled) */}
-                                            {!isScheduled && !isTherapistCancelled && (
-                                                <button
+                                                <span
                                                     style={{
-                                                        flex: 1,
-                                                        padding: "10px 12px",
-                                                        borderRadius: 8,
-                                                        border: "none",
-                                                        background: "#16a34a",
-                                                        color: "#fff",
-                                                        fontWeight: 500,
-                                                        cursor: "pointer"
-                                                    }}
-                                                    onClick={async () => {
-                                                        try {
-                                                            await updateStatus(a.id, "confirmed");
-                                                        } catch {
-                                                            alert("Грешка");
-                                                        }
+                                                        display: "inline-block",
+                                                        padding: "4px 8px",
+                                                        borderRadius: 5,
+                                                        fontSize: 13,
+                                                        fontWeight: 600,
+                                                        background:
+                                                            a.status === "confirmed"
+                                                                ? "#e8f5e9"
+                                                                : a.status === "cancelled"
+                                                                    ? "#ffebee"
+                                                                    : a.status === "completed"
+                                                                        ? "#eeeeee"
+                                                                        : a.status === "archived"
+                                                                            ? "#e3f2fd"
+                                                                            : "#fff3e0",
+                                                        color:
+                                                            a.status === "confirmed"
+                                                                ? "#2e7d32"
+                                                                : a.status === "cancelled"
+                                                                    ? "#c62828"
+                                                                    : a.status === "completed"
+                                                                        ? "#616161"
+                                                                        : a.status === "archived"
+                                                                            ? "#1565c0"
+                                                                            : "#ef6c00",
                                                     }}
                                                 >
-                                                    Потвърждавам
-                                                </button>
-                                            )}
+                                                    {a.status}
+                                                </span>
+                                            </td>
 
-                                            {/* ❌ Отменям (ако НЕ е отменена от клиента) */}
-                                            {!isClientCancelled && !isTherapistCancelled && (
-                                                <button
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: "10px 12px",
-                                                        borderRadius: 8,
-                                                        border: "none",
-                                                        background: "#dc2626",
-                                                        color: "#fff",
-                                                        fontWeight: 500,
-                                                        cursor: "pointer"
-                                                    }}
-                                                    onClick={async () => {
-                                                        const reason = prompt("Причина за отмяна:");
-                                                        if (reason === null) return;
+                                            <td
+                                                style={{
+                                                    padding: 10,
+                                                    borderTop: "1px solid #eee",
+                                                }}
+                                            >
+                                                {!["cancelled", "completed", "archived"].includes(a.status) && (
+                                                    <div
+                                                        style={{
+                                                            display: "flex",
+                                                            gap: 8,
+                                                            flexWrap: "wrap",
+                                                        }}
+                                                    >
+                                                        <button
+                                                            // style={{
+                                                            //     background: "#4caf50",
+                                                            //     color: "#fff",
+                                                            //     border: "none",
+                                                            //     borderRadius: 5,
+                                                            //     padding: "6px 12px",
+                                                            //     cursor: "pointer",
+                                                            //     width: 90,
+                                                            //     textAlign: "center",
+                                                            // }}
+                                                            style={{
+                                                                ...actionButtonStyle,
+                                                                background: "#4caf50",
+                                                            }}
+                                                            className="client-access-action-button"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await updateStatus(a.id, "confirmed");
+                                                                } catch {
+                                                                    alert("Error");
+                                                                }
+                                                            }}
+                                                        >
+                                                            Confirm
+                                                        </button>
 
-                                                        if (reason.trim() === "") {
-                                                            alert("Моля, въведете причина");
-                                                            return;
-                                                        }
+                                                        <button
+                                                            // style={{
+                                                            //     background: "#f44336",
+                                                            //     color: "#fff",
+                                                            //     border: "none",
+                                                            //     borderRadius: 5,
+                                                            //     padding: "6px 12px",
+                                                            //     cursor: "pointer",
+                                                            //     width: 90,
+                                                            //     textAlign: "center",
+                                                            // }}
+                                                            style={{
+                                                                ...actionButtonStyle,
+                                                                background: "#f44336",
+                                                            }}
+                                                            className="client-access-action-button"
+                                                            onClick={async () => {
+                                                                const reason = prompt("Reason for cancellation:");
 
-                                                        try {
-                                                            await updateStatus(a.id, "cancelled", reason);
-                                                        } catch {
-                                                            alert("Грешка");
-                                                        }
-                                                    }}
-                                                >
-                                                    Отменям
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
+                                                                if (reason === null) return;
 
-                                </div>
+                                                                if (reason.trim() === "") {
+                                                                    alert("Please enter a reason");
+                                                                    return;
+                                                                }
 
-                                {/* 🔴 статус текст */}
-                                {a.status === "cancelled" && a.cancelledBy === "therapist" && (
-                                    <div>Отменена от терапевт</div>
-                                )}
+                                                                try {
+                                                                    await updateStatus(
+                                                                        a.id,
+                                                                        "cancelled",
+                                                                        reason
+                                                                    );
+                                                                } catch {
+                                                                    alert("Error");
+                                                                }
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                )}
 
-                            </div>
-                        );
-                    })}
+                                                {a.status === "cancelled" && a.cancelReason && (
+                                                    <div
+                                                        style={{
+                                                            fontSize: 13,
+                                                            color: "#666",
+                                                        }}
+                                                    >
+                                                        <strong>Reason:</strong> {a.cancelReason}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         );
     };
@@ -422,14 +740,14 @@ export default function ClientAccess() {
 
             {/* <h2 style={{ marginBottom: 20 }}>{client.name}</h2> */}
             <h2 style={{ marginBottom: 20 }}>
-                Здравей, {clientInfo?.name}
+                Hello, {clientInfo?.name}
             </h2>
-            {appointments.length === 0 && <div>Няма срещи</div>}
+            {appointments.length === 0 && <div>No meetings</div>}
 
-            {renderSection("Днес", today)}
-            {renderSection("Утре", tomorrow)}
-            {renderSection("Предстоящи", upcoming)}
-            {renderSection("Минали", past)}
+            {renderSection("Today", today)}
+            {renderSection("Tomorrow", tomorrow)}
+            {renderSection("Upcoming", upcoming)}
+            {renderSection("Past", past)}
         </div>
     );
 }

@@ -6,6 +6,16 @@ export class CreateAppointmentDto {
   @IsNumber()
   clientId: number = 0;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  practiceLocationId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  serviceId?: number;
+
   // @IsDateString()
   // startTime: string = '';
 

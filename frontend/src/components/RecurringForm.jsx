@@ -3,12 +3,14 @@ import { useState } from "react";
 export default function RecurringForm({
     onClose,
     selectedClient,
-    therapist,
+    selectedLocationId,
+    selectedServiceId,
     duration,
     WORK_START,
     WORK_END,
     WORK_END_MINUTE
 }) {
+
     const [start, setStart] = useState("");
     const [end, setEnd] = useState("");
     const [count, setCount] = useState(1);
@@ -18,14 +20,6 @@ export default function RecurringForm({
     const [startHour, setStartHour] = useState("08");
     const [startMinute, setStartMinute] = useState("00");
     const API_URL = import.meta.env.VITE_API_URL;
-
-    // function roundTo30(dateString) {
-    //     const d = new Date(dateString);
-    //     const minutes = d.getMinutes();
-    //     const rounded = Math.round(minutes / 30) * 30;
-    //     d.setMinutes(rounded, 0, 0);
-    //     return d;
-    // }
 
     function normalize(dateString) {
         const d = new Date(dateString);
@@ -39,15 +33,6 @@ export default function RecurringForm({
     }
 
     async function createRecurring() {
-        // if (!selectedClient?.id) {
-        //     alert("Select client first");
-        //     return;
-        // }
-        // if (!selectedClient?.id) {
-        //     alert("Select client first");
-        //     return;
-        // }
-        console.log("FORM RENDERED");
         if (!count || count < 1) {
             alert("Invalid count");
             return;
@@ -68,19 +53,6 @@ export default function RecurringForm({
             return;
         }
 
-        // if (!selectedClient || !selectedClient.id) {
-        //     alert("Select client first");
-        //     return;
-        // }
-
-        console.log({
-            clientId: selectedClient?.id,
-            therapistId: therapist?.id,
-            start,
-            end,
-            count
-        });
-
         setLoading(true);
 
         try {
@@ -98,15 +70,6 @@ export default function RecurringForm({
 
             setLoading(false);
 
-            console.log("SENDING:", {
-                clientId: selectedClient?.id,
-                therapistId: therapist?.id,
-                startTime,
-                endTime,
-                count
-            });
-            console.log("CLIENT:", selectedClient);
-
             const res = await fetch(`${API_URL}/appointments/recurring`, {
                 method: "POST",
                 headers: {
@@ -115,7 +78,8 @@ export default function RecurringForm({
                 },
                 body: JSON.stringify({
                     clientId: selectedClient?.id,
-                    therapistId: therapist?.id || 1,
+                    practiceLocationId: selectedLocationId,
+                    serviceId: selectedServiceId,
                     startTime: startTime.toISOString(),
                     endTime: endTime.toISOString(),
                     count: Number(count),
@@ -132,9 +96,15 @@ export default function RecurringForm({
 
             onClose();
             window.location.reload();
-        } catch (err) {
-            console.error(err);
-            alert("Request failed");
+        }
+        // catch (err) {
+        //     console.error(err);
+        //     alert("Request failed");
+
+        catch (err) {
+            console.error("RECURRING REQUEST ERROR:", err);
+            alert(err?.message || "Request failed");
+
             //setLoading(false);
         } finally {
             setLoading(false); // 🔥 винаги се изпълнява
@@ -256,17 +226,14 @@ export default function RecurringForm({
 
             <button
                 onClick={() => {
-                    console.log("CREATE CLICK");
                     createRecurring();
                 }}
-                disabled={loading}
             >
                 {loading ? "Creating..." : "Create"}
             </button>
 
             <button
                 onClick={() => {
-                    console.log("CLOSE CLICK");
                     onClose();
                 }}
                 style={{ marginLeft: 10 }}

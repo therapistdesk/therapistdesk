@@ -843,7 +843,7 @@ export function validatePractice(practice) {
         errors.push(
             createValidationError(
                 "practice.categories",
-                "Please add at least one category."
+                "Please add at least one therapeutic approach."
             )
         );
     }
@@ -853,7 +853,7 @@ export function validatePractice(practice) {
             errors.push(
                 createValidationError(
                     `practice.categories[${categoryIndex}].name`,
-                    "Category name is required."
+                    "Therapeutic Approach name is required."
                 )
             );
         }
@@ -862,7 +862,7 @@ export function validatePractice(practice) {
             errors.push(
                 createValidationError(
                     `practice.categories[${categoryIndex}].services`,
-                    "Each category must contain at least one service."
+                    "Each therapeutic approach must contain at least one service."
                 )
             );
         }
@@ -1036,6 +1036,54 @@ export function validateProfile(profile) {
  * ========================================================================== */
 
 /**
+ * Validates a single practice location.
+ */
+export function validateLocation(location, index = 0) {
+    const errors = [];
+
+    if (!location.name.trim()) {
+        errors.push(
+            createValidationError(
+                `practice.locations[${index}].name`,
+                "Location name is required."
+            )
+        );
+    }
+
+    if (!location.country.trim()) {
+        errors.push(
+            createValidationError(
+                `practice.locations[${index}].country`,
+                "Country is required."
+            )
+        );
+    }
+
+    if (!location.city.trim()) {
+        errors.push(
+            createValidationError(
+                `practice.locations[${index}].city`,
+                "City is required."
+            )
+        );
+    }
+
+    if (
+        location.type !== "online" &&
+        !location.address.trim()
+    ) {
+        errors.push(
+            createValidationError(
+                `practice.locations[${index}].address`,
+                "Address is required."
+            )
+        );
+    }
+
+    return errors;
+}
+
+/**
  * Validates practice locations.
  */
 export function validateLocations(locations) {
@@ -1051,44 +1099,7 @@ export function validateLocations(locations) {
     }
 
     locations.forEach((location, index) => {
-        if (!location.name.trim()) {
-            errors.push(
-                createValidationError(
-                    `practice.locations[${index}].name`,
-                    "Location name is required."
-                )
-            );
-        }
-
-        if (!location.country.trim()) {
-            errors.push(
-                createValidationError(
-                    `practice.locations[${index}].country`,
-                    "Country is required."
-                )
-            );
-        }
-
-        if (!location.city.trim()) {
-            errors.push(
-                createValidationError(
-                    `practice.locations[${index}].city`,
-                    "City is required."
-                )
-            );
-        }
-
-        if (
-            location.type !== "online" &&
-            !location.address.trim()
-        ) {
-            errors.push(
-                createValidationError(
-                    `practice.locations[${index}].address`,
-                    "Address is required."
-                )
-            );
-        }
+        errors.push(...validateLocation(location, index));
     });
 
     if (errors.length > 0) {
@@ -1117,6 +1128,23 @@ export const SERVICE_COLORS = [
     { id: "orange", color: "#FB8C00" },
     { id: "red", color: "#E53935" },
 ];
+
+export function resolveServiceColor(color) {
+    if (!color) return null;
+
+    if (
+        color.startsWith("#") ||
+        color.startsWith("rgb") ||
+        color.startsWith("hsl")
+    ) {
+        return color;
+    }
+
+    return (
+        SERVICE_COLORS.find((item) => item.id === color)?.color ??
+        null
+    );
+}
 
 /**
  * Returns a service color definition by id.

@@ -465,7 +465,7 @@ export default function RegisterApp({ onBack }) {
       )}
 
 
-      {step === 3 && (
+      {step === 4 && (
         <RegisterPractice
           form={form}
           handleAddCategory={handleAddCategory}
@@ -480,7 +480,7 @@ export default function RegisterApp({ onBack }) {
         />
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <RegisterLocations
           form={form}
           handleAddLocation={handleAddLocation}

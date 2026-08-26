@@ -1,3 +1,5 @@
+import LocationForm from "../components/settings/LocationForm";
+
 export default function RegisterLocations({
     form,
     handleAddLocation,
@@ -12,22 +14,22 @@ export default function RegisterLocations({
         <>
             <h3>Practice Locations</h3>
 
-            {form.practice.locations.length > 0 && (
+            {/* {form.practice.locations.length > 0 && (
                 <div className="info-message">
                     <strong>Note:</strong> After adding your practice locations, return to
                     <strong> Step 3 – Categories &amp; Services</strong> to assign each
                     service to the locations where it is offered.
                 </div>
-            )}
+            )} */}
 
-            <p
+            {/* <p
                 style={{
                     color: "#666",
                     marginBottom: 20,
                 }}
             >
                 Add all places where you provide your services.
-            </p>
+            </p> */}
 
             <button
                 type="button"
@@ -129,104 +131,16 @@ export default function RegisterLocations({
                         </select>
                     </div>
 
-                    <div style={{ marginBottom: 15 }}>
-                        <label>Location Name *</label>
-
-                        <input
-                            value={location.name}
-                            onChange={(e) =>
-                                handleUpdateLocation(
-                                    location.id,
-                                    "name",
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Central Office"
-                            style={{
-                                width: "100%",
-                                marginTop: 5,
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: 15 }}>
-                        <label>Country *</label>
-
-                        <input
-                            value={location.country}
-                            onChange={(e) =>
-                                handleUpdateLocation(
-                                    location.id,
-                                    "country",
-                                    e.target.value
-                                )
-                            }
-                            style={{
-                                width: "100%",
-                                marginTop: 5,
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: 15 }}>
-                        <label>City *</label>
-
-                        <input
-                            value={location.city}
-                            onChange={(e) =>
-                                handleUpdateLocation(
-                                    location.id,
-                                    "city",
-                                    e.target.value
-                                )
-                            }
-                            style={{
-                                width: "100%",
-                                marginTop: 5,
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: 15 }}>
-                        <label>Address *</label>
-
-                        <input
-                            value={location.address}
-                            onChange={(e) =>
-                                handleUpdateLocation(
-                                    location.id,
-                                    "address",
-                                    e.target.value
-                                )
-                            }
-                            style={{
-                                width: "100%",
-                                marginTop: 5,
-                            }}
-                        />
-                    </div>
-
-                    {/*  */}
-                    <div style={{ marginBottom: 15 }}>
-                        <label>Notes</label>
-
-                        <textarea
-                            value={location.notes}
-                            onChange={(e) =>
-                                handleUpdateLocation(
-                                    location.id,
-                                    "notes",
-                                    e.target.value
-                                )
-                            }
-                            rows={3}
-                            style={{
-                                width: "100%",
-                                marginTop: 5,
-                                resize: "vertical",
-                            }}
-                        />
-                    </div>
+                    <LocationForm
+                        location={location}
+                        onChange={(field, value) =>
+                            handleUpdateLocation(
+                                location.id,
+                                field,
+                                value
+                            )
+                        }
+                    />
 
                 </div>
             ))}

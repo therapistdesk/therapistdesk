@@ -4,6 +4,8 @@ import {
     getUsedServiceColors,
 } from "./RegisterHelpers";
 
+import ServiceColorPicker from "../components/common/ServiceColorPicker";
+
 export default function RegisterPractice({
     form,
     handleAddCategory,
@@ -20,23 +22,23 @@ export default function RegisterPractice({
     return (
         // Тук поставяш 1:1 съдържанието от Step 3
         <>
-            <h3>Categories & Services</h3>
+            <h3>Therapeutic Approach & Services</h3>
 
-            {form.practice.locations.length === 0 && (
+            {/* {form.practice.locations.length === 0 && (
                 <div className="info-message">
                     <strong>Note:</strong> No practice locations have been added yet.
                     Add your locations in <strong>Step 4 – Practice Locations</strong>,
                     then return here to assign each service to the locations where it is
                     offered.
                 </div>
-            )}
+            )} */}
 
             <button
                 type="button"
                 onClick={handleAddCategory}
                 style={{ marginBottom: 20 }}
             >
-                + Add Category
+                + Add Therapeutic Approach
             </button>
 
             {form.practice.categories.length === 0 && (
@@ -49,7 +51,7 @@ export default function RegisterPractice({
                         marginBottom: 20,
                     }}
                 >
-                    No categories added yet.
+                    No therapeutic approaches yet.
                 </div>
             )}
 
@@ -64,7 +66,7 @@ export default function RegisterPractice({
                     }}
                 >
                     <div style={{ fontWeight: "bold", marginBottom: 10 }}>
-                        Category {index + 1}
+                        Therapeutic Approach {index + 1}
                     </div>
 
                     <div style={{ marginBottom: 10 }}>
@@ -80,12 +82,12 @@ export default function RegisterPractice({
                                 borderRadius: 4,
                             }}
                         >
-                            Delete Category
+                            Delete Therapeutic Approach
                         </button>
                     </div>
 
                     <input
-                        placeholder="Category name"
+                        placeholder="Therapeutic Approach name"
                         value={category.name}
                         onChange={(e) =>
                             handleUpdateCategory(index, "name", e.target.value)
@@ -177,47 +179,18 @@ export default function RegisterPractice({
                                         }}
                                     >
                                         {/* блока с палитрата */}
-                                        {SERVICE_COLORS.map((color) => {
-                                            const isSelected = service.color === color.id;
-
-                                            const isUsed =
-                                                usedColors.includes(color.id) && !isSelected;
-
-                                            return (
-                                                <button
-                                                    key={color.id}
-                                                    type="button"
-                                                    disabled={isUsed}
-                                                    onClick={() =>
-                                                        handleUpdateService(
-                                                            index,
-                                                            serviceIndex,
-                                                            "color",
-                                                            color.id
-                                                        )
-                                                    }
-                                                    title={
-                                                        isUsed
-                                                            ? `${color.id} (already used)`
-                                                            : color.id
-                                                    }
-                                                    style={{
-                                                        width: 24,
-                                                        height: 24,
-                                                        borderRadius: "50%",
-                                                        border: isSelected
-                                                            ? "3px solid #000"
-                                                            : "1px solid #ccc",
-                                                        background: color.color,
-                                                        cursor: isUsed
-                                                            ? "not-allowed"
-                                                            : "pointer",
-                                                        opacity: isUsed ? 0.25 : 1,
-                                                        padding: 0,
-                                                    }}
-                                                />
-                                            );
-                                        })}
+                                        <ServiceColorPicker
+                                            selectedColor={service.color}
+                                            usedColors={usedColors}
+                                            onChange={(color) =>
+                                                handleUpdateService(
+                                                    index,
+                                                    serviceIndex,
+                                                    "color",
+                                                    color
+                                                )
+                                            }
+                                        />
                                     </div>
 
                                     <input

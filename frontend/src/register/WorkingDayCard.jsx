@@ -62,7 +62,7 @@ export default function WorkingDayCard({
             </div>
 
             <div className="space-y-2">
-                {selectedLocation.workingHours[day].map((interval, index) => (
+                {(selectedLocation.workingHours?.[day] || []).map((interval, index) => (
                     <div
                         key={interval.id}
                         className="flex items-center gap-2 flex-wrap"

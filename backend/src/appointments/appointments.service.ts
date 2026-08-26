@@ -96,12 +96,15 @@ export class AppointmentsService {
 
     try {
       // ✅ СЪЗДАВАМЕ СРЕЩАТА
+      console.log("CREATE SERVICE ID:", dto.serviceId);
       const appointment = await this.prisma.appointment.create({
         data: {
           startTime: new Date(dto.startTime),
           endTime: new Date(dto.endTime),
           clientId: Number(dto.clientId),
           therapistId: therapist.id,
+          practiceLocationId: dto.practiceLocationId ?? null,
+          serviceId: dto.serviceId ?? null,
           status: 'pending',
           notes: dto.notes ?? null,
         },
@@ -144,7 +147,7 @@ export class AppointmentsService {
         { type: 'reminder_24h', minutes: 24 * 60 },
         { type: 'reminder_1h', minutes: 60 },
       ];
-      
+
       for (const r of reminderConfigs) {
         const sendAt = new Date(
           start.getTime() - r.minutes * 60 * 1000
@@ -193,63 +196,92 @@ export class AppointmentsService {
   async createRecurring(data: any, userId: number) {
     const {
       clientId,
+      practiceLocationId,
+      serviceId,
       startTime,
       endTime,
       until,
-      count
+      count,
     } = data;
 
-    const series = await this.prisma.recurringSeries.create({
-      data: {
-        clientId,
-        therapistId: userId,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        frequency: "WEEKLY",
-        interval: 1,
-        daysOfWeek: "",
-        until: until ? new Date(until) : null
-      }
+    if (!clientId) {
+      throw new BadRequestException('clientId is required');
+    }
+
+    if (!startTime || !endTime) {
+      throw new BadRequestException('startTime and endTime are required');
+    }
+
+    const therapist = await this.prisma.therapist.findUnique({
+      where: { userId },
     });
+
+    if (!therapist) {
+      throw new NotFoundException('Therapist not found');
+    }
 
     const dates = generateDates({
       startTime,
       endTime,
       until,
-      count
+      count,
+    });
+
+    if (dates.length === 0) {
+      throw new BadRequestException('No valid recurring dates');
+    }
+
+    const series = await this.prisma.recurringSeries.create({
+      data: {
+        clientId: Number(clientId),
+        therapistId: therapist.id,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        frequency: 'WEEKLY',
+        interval: 1,
+        daysOfWeek: '',
+        until: until ? new Date(until) : null,
+      },
     });
 
     for (const d of dates) {
-      await this.prisma.appointment.create({
+      const appointment = await this.prisma.appointment.create({
         data: {
           startTime: d.startTime,
           endTime: d.endTime,
-          clientId,
-          therapistId: userId,
+          clientId: Number(clientId),
+          therapistId: therapist.id,
+          practiceLocationId: practiceLocationId
+            ? Number(practiceLocationId)
+            : null,
+          serviceId: serviceId
+            ? Number(serviceId)
+            : null,
           seriesId: series.id,
-          status: 'pending'
-        }
+          status: 'pending',
+        },
       });
 
       await this.prisma.message.create({
         data: {
-          // clientId: created.clientId,
-          // therapistId: created.therapistId,
-          clientId: data.clientId,
-          therapistId: data.therapistId,
+          clientId: appointment.clientId,
+          therapistId: appointment.therapistId,
           appointment: {
-            // временно 120626
-            // connect: { id: appointment.id },
+            connect: { id: appointment.id },
           },
           type: 'appointment_created',
           content: 'Имате нова среща',
           sendAt: new Date(),
-          status: 'sent',
+          status: 'pending',
         },
       });
     }
 
-    return series;
+    return {
+      success: true,
+      seriesId: series.id,
+      appointmentsCount: dates.length,
+    };
   }
 
   async findAll(userId: number) {
@@ -497,6 +529,8 @@ export class AppointmentsService {
         client: true,
         messages: true,
         therapist: true,
+        service: true,
+        practiceLocation: true,
       },
       orderBy: {
         startTime: 'asc',
@@ -526,6 +560,114 @@ export class AppointmentsService {
     });
   }
 
+  // async update(id: number, data: any) {
+  //   const appointment = await this.prisma.appointment.findUnique({
+  //     where: { id },
+  //   });
+
+  //   if (!appointment) {
+  //     throw new NotFoundException('Invalid appointment id');
+  //   }
+
+  //   // 👉 нормална среща
+  //   if (!appointment.seriesId) {
+  //     const safeData: any = {};
+
+  //     const isRescheduled =
+  //       data.startTime &&
+  //       new Date(data.startTime).getTime() !==
+  //       new Date(appointment.startTime).getTime();
+
+  //     if (data.startTime) safeData.startTime = new Date(data.startTime);
+  //     if (data.endTime) safeData.endTime = new Date(data.endTime);
+  //     if (data.clientId) safeData.clientId = data.clientId;
+  //     if (data.therapistId) safeData.therapistId = data.therapistId;
+  //     if (data.notes !== undefined) safeData.notes = data.notes;
+
+  //     const updated = await this.prisma.appointment.update({
+  //       where: { id },
+  //       data: {
+  //         ...safeData,
+
+  //         ...(isRescheduled && {
+  //           status: 'pending',
+  //           seenAt: null,
+
+  //           cancelledBy: null,
+  //           cancelledAt: null,
+  //           cancelReason: null,
+  //         }),
+  //       },
+  //       include: {
+  //         client: true,
+  //         therapist: true,
+  //       },
+  //     });
+
+  //     if (isRescheduled && updated.clientId) {
+  //       const d = new Date(updated.startTime);
+  //       const therapistName = updated.therapist
+  //         ? `${updated.therapist.firstName} ${updated.therapist.lastName}`
+  //         : 'Вашият терапевт';
+
+  //       const date = d.toLocaleDateString('bg-BG');
+  //       const time = d.toLocaleTimeString('bg-BG', {
+  //         hour: '2-digit',
+  //         minute: '2-digit',
+  //       });
+  //       // console.log("RESCHEDULE PUSH TRIGGERED");
+
+  //       await this.pushService.sendToClient(updated.clientId, {
+  //         title: '🔄 Срещата е променена',
+  //         body:
+  //           `${updated.client?.name ? updated.client.name + ',\n' : ''}` +
+  //           `${date} • ${time}\n` +
+  //           `Терапевт: ${therapistName}`,
+  //         tag: `appointment-${updated.id}`,
+  //         data: {
+  //           appointmentId: updated.id,
+  //           url: `/appointments/${updated.id}`,
+  //         },
+  //       });
+  //     }
+  //     return updated;
+  //   }
+
+  //   // 👉 recurring → exception
+  //   const original = appointment;
+
+  //   await this.prisma.appointment.create({
+  //     data: {
+  //       startTime: data.startTime
+  //         ? new Date(data.startTime)
+  //         : original.startTime,
+  //       endTime: data.endTime
+  //         ? new Date(data.endTime)
+  //         : original.endTime,
+
+  //       clientId: original.clientId,
+  //       therapistId: original.therapistId,
+  //       seriesId: original.seriesId,
+
+  //       originalDate: original.startTime,
+  //       isException: true,
+  //       status: 'pending',
+
+  //       notes: data.notes ?? original.notes,
+  //     },
+  //   });
+
+  //   await this.prisma.appointment.update({
+  //     where: { id },
+  //     data: {
+  //       isCancelled: true,
+  //       status: 'cancelled',
+  //     },
+  //   });
+
+  //   return { success: true };
+  // }
+
   async update(id: number, data: any) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id },
@@ -535,7 +677,7 @@ export class AppointmentsService {
       throw new NotFoundException('Invalid appointment id');
     }
 
-    // 👉 нормална среща
+    // 👉 Нормална среща
     if (!appointment.seriesId) {
       const safeData: any = {};
 
@@ -558,7 +700,6 @@ export class AppointmentsService {
           ...(isRescheduled && {
             status: 'pending',
             seenAt: null,
-
             cancelledBy: null,
             cancelledAt: null,
             cancelReason: null,
@@ -572,16 +713,18 @@ export class AppointmentsService {
 
       if (isRescheduled && updated.clientId) {
         const d = new Date(updated.startTime);
+
         const therapistName = updated.therapist
           ? `${updated.therapist.firstName} ${updated.therapist.lastName}`
           : 'Вашият терапевт';
 
         const date = d.toLocaleDateString('bg-BG');
+
         const time = d.toLocaleTimeString('bg-BG', {
           hour: '2-digit',
           minute: '2-digit',
         });
-        // console.log("RESCHEDULE PUSH TRIGGERED");
+
         await this.pushService.sendToClient(updated.clientId, {
           title: '🔄 Срещата е променена',
           body:
@@ -595,23 +738,107 @@ export class AppointmentsService {
           },
         });
       }
+
       return updated;
     }
 
-    // 👉 recurring → exception
+    // 👉 Recurring exception — местим съществуващия exception
+    if (appointment.isException) {
+      const safeData: any = {};
+
+      const isRescheduled =
+        data.startTime &&
+        new Date(data.startTime).getTime() !==
+        new Date(appointment.startTime).getTime();
+
+      if (data.startTime) {
+        safeData.startTime = new Date(data.startTime);
+      }
+
+      if (data.endTime) {
+        safeData.endTime = new Date(data.endTime);
+      }
+
+      if (data.clientId) {
+        safeData.clientId = data.clientId;
+      }
+
+      if (data.therapistId) {
+        safeData.therapistId = data.therapistId;
+      }
+
+      if (data.notes !== undefined) {
+        safeData.notes = data.notes;
+      }
+
+      const updated = await this.prisma.appointment.update({
+        where: { id },
+        data: {
+          ...safeData,
+
+          ...(isRescheduled && {
+            status: 'pending',
+            seenAt: null,
+            cancelledBy: null,
+            cancelledAt: null,
+            cancelReason: null,
+            isCancelled: false,
+          }),
+        },
+        include: {
+          client: true,
+          therapist: true,
+        },
+      });
+
+      if (isRescheduled && updated.clientId) {
+        const d = new Date(updated.startTime);
+
+        const therapistName = updated.therapist
+          ? `${updated.therapist.firstName} ${updated.therapist.lastName}`
+          : 'Вашият терапевт';
+
+        const date = d.toLocaleDateString('bg-BG');
+
+        const time = d.toLocaleTimeString('bg-BG', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        await this.pushService.sendToClient(updated.clientId, {
+          title: '🔄 Срещата е променена',
+          body:
+            `${updated.client?.name ? updated.client.name + ',\n' : ''}` +
+            `${date} • ${time}\n` +
+            `Терапевт: ${therapistName}`,
+          tag: `appointment-${updated.id}`,
+          data: {
+            appointmentId: updated.id,
+            url: `/appointments/${updated.id}`,
+          },
+        });
+      }
+
+      return updated;
+    }
+
+    // 👉 Recurring original → exception
     const original = appointment;
 
-    await this.prisma.appointment.create({
+    const exception = await this.prisma.appointment.create({
       data: {
         startTime: data.startTime
           ? new Date(data.startTime)
           : original.startTime,
+
         endTime: data.endTime
           ? new Date(data.endTime)
           : original.endTime,
 
         clientId: original.clientId,
         therapistId: original.therapistId,
+        practiceLocationId: original.practiceLocationId,
+        serviceId: original.serviceId,
         seriesId: original.seriesId,
 
         originalDate: original.startTime,
@@ -620,17 +847,63 @@ export class AppointmentsService {
 
         notes: data.notes ?? original.notes,
       },
+
+      include: {
+        client: true,
+        therapist: true,
+      },
     });
 
+    // await this.prisma.appointment.update({
+    //   where: { id },
+    //   data: {
+    //     isCancelled: true,
+    //     status: 'cancelled',
+    //   },
+    // });
     await this.prisma.appointment.update({
       where: { id },
       data: {
         isCancelled: true,
         status: 'cancelled',
+        cancelledBy: 'therapist',
+        cancelledAt: new Date(),
+        cancelReason: 'Преместена',
       },
     });
 
-    return { success: true };
+    if (exception.clientId) {
+      const d = new Date(exception.startTime);
+
+      const therapistName = exception.therapist
+        ? `${exception.therapist.firstName} ${exception.therapist.lastName}`
+        : 'Вашият терапевт';
+
+      const date = d.toLocaleDateString('bg-BG');
+
+      const time = d.toLocaleTimeString('bg-BG', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      await this.pushService.sendToClient(exception.clientId, {
+        title: '🔄 Срещата е променена',
+        body:
+          `${exception.client?.name ? exception.client.name + ',\n' : ''}` +
+          `${date} • ${time}\n` +
+          `Терапевт: ${therapistName}`,
+        tag: `appointment-${exception.id}`,
+        data: {
+          appointmentId: exception.id,
+          url: `/appointments/${exception.id}`,
+        },
+      });
+    }
+
+    return {
+      success: true,
+      appointment: exception,
+    };
   }
 
 }

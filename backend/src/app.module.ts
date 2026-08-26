@@ -10,6 +10,7 @@ import { SmsService } from './messages/sms.service';
 import { PushService } from './messages/push.service';
 import { PushController } from './messages/push.controller';
 import { MessagesController } from './messages/messages.controller';
+import { SettingsModule } from "./settings/settings.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MessagesController } from './messages/messages.controller';
     ClientsModule,
     AppointmentsModule,
     ScheduleModule.forRoot(),
+    SettingsModule,
   ],
   controllers: [PushController, MessagesController],
   providers: [MessagesService, SmsService, PushService],
