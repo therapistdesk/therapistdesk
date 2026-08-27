@@ -743,6 +743,11 @@ export default function ClientAccess() {
             <h2 style={{ marginBottom: 20 }}>
                 Hello, {clientInfo?.name}
             </h2>
+            
+            <div style={{ fontSize: 12, color: "red", marginBottom: 20 }}>
+                DEBUG clientInfo: {JSON.stringify(clientInfo)}
+            </div>
+
             {appointments.length === 0 && <div>No meetings</div>}
 
             {renderSection("Today", today)}
