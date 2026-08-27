@@ -5,6 +5,7 @@ import {
     IsString,
     MaxLength,
 } from "class-validator";
+import { Transform } from "class-transformer";
 
 export enum Gender {
     male = "male",
@@ -30,6 +31,7 @@ export class UpdateSettingsDto {
     gender?: Gender;
 
     @IsOptional()
+    @Transform(({ value }) => value === "" ? undefined : value)
     @IsDateString()
     birthDate?: string;
 
