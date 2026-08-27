@@ -1366,6 +1366,23 @@ function App() {
                 }
               }}
 
+              onTouchMove={(e) => {
+                if (!dragged) return;
+
+                const touch = e.touches[0];
+
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = touch.clientY - rect.top;
+
+                const snapped = snap(y / PX_PER_MINUTE);
+
+                setHoverY(snapped * PX_PER_MINUTE);
+                setHoverDayIndex(dayIndex);
+                setPreview(y);
+
+                e.preventDefault();
+              }}
+
               onDragOver={(e) => {
                 e.preventDefault();
 
@@ -1628,6 +1645,14 @@ function App() {
                           setDragged,
                         })
                       }
+                      handleDrop={handleDrop}
+                      day={weekDays[dayIndex]}
+                      weekDays={weekDays}
+                      snap={snap}
+                      PX_PER_MINUTE={PX_PER_MINUTE}
+                      setHoverY={setHoverY}
+                      setHoverDayIndex={setHoverDayIndex}
+                      setPreview={setPreview}
                       handleAddNote={handleAddNote}
                       deleteAppointment={deleteAppointment}
                       reloadAppointments={reloadAppointments}

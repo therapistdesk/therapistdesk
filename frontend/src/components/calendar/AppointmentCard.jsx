@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 export default function AppointmentCard({
     a,
     start,
@@ -21,6 +23,14 @@ export default function AppointmentCard({
     setHoverPosition,
     setActiveAppointment,
     handleDragStart,
+    handleDrop,
+    day,
+    weekDays,
+    snap,
+    PX_PER_MINUTE,
+    setHoverY,
+    setHoverDayIndex,
+    setPreview,
     handleAddNote,
     deleteAppointment,
     reloadAppointments,
@@ -29,6 +39,235 @@ export default function AppointmentCard({
     lang,
     canDrag,
 }) {
+    const touchStartRef = useRef(null);
+    const touchDraggingRef = useRef(false);
+    const touchMovedRef = useRef(false);
+    const touchDayIndexRef = useRef(null);
+    const touchYRef = useRef(null);
+
+    /*
+     * Почистване на touch listener-и при unmount.
+     */
+    useEffect(() => {
+        return () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+            }
+        };
+    }, [pressTimer]);
+
+    /*
+     * Намира календарната колона под пръста.
+     */
+    const getTouchPosition = (touch) => {
+        const element = document.elementFromPoint(
+            touch.clientX,
+            touch.clientY
+        );
+
+        if (!element) return null;
+
+        const column = element.closest("[data-dayindex]");
+
+        if (!column) return null;
+
+        const dayIndex = Number(column.dataset.dayindex);
+
+        if (!Number.isInteger(dayIndex)) return null;
+
+        const rect = column.getBoundingClientRect();
+        const y = touch.clientY - rect.top;
+
+        return {
+            column,
+            dayIndex,
+            y,
+        };
+    };
+
+    /*
+     * Спира touch drag listener-ите.
+     */
+    const cleanupTouchDrag = () => {
+        if (touchMoveHandlerRef.current) {
+            document.removeEventListener(
+                "touchmove",
+                touchMoveHandlerRef.current
+            );
+        }
+
+        if (touchEndHandlerRef.current) {
+            document.removeEventListener(
+                "touchend",
+                touchEndHandlerRef.current
+            );
+        }
+
+        touchMoveHandlerRef.current = null;
+        touchEndHandlerRef.current = null;
+    };
+
+    const touchMoveHandlerRef = useRef(null);
+    const touchEndHandlerRef = useRef(null);
+
+    /*
+     * Започване на touch.
+     */
+    const handleTouchStart = (e) => {
+        if (isCancelled) return;
+
+        const touch = e.touches[0];
+
+        if (!touch) return;
+
+        touchStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+        };
+
+        touchDraggingRef.current = false;
+        touchMovedRef.current = false;
+        touchDayIndexRef.current = null;
+        touchYRef.current = null;
+
+        setLongPressTriggered(false);
+
+        const timer = setTimeout(() => {
+            if (touchMovedRef.current) return;
+
+            setLongPressTriggered(true);
+
+            setAppointmentMenu({
+                x: touch.clientX,
+                y: touch.clientY,
+                appointment: a,
+            });
+        }, 500);
+
+        setPressTimer(timer);
+
+        /*
+         * Следим за движението на пръста върху целия документ.
+         * Това позволява срещата да бъде влачена и между различни
+         * дневни колони.
+         */
+        const moveHandler = (moveEvent) => {
+            if (!touchStartRef.current) return;
+
+            const currentTouch = moveEvent.touches[0];
+
+            if (!currentTouch) return;
+
+            const dx =
+                currentTouch.clientX - touchStartRef.current.x;
+
+            const dy =
+                currentTouch.clientY - touchStartRef.current.y;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 8) return;
+
+            touchMovedRef.current = true;
+
+            clearTimeout(timer);
+            clearTimeout(pressTimer);
+
+            setLongPressTriggered(false);
+
+            if (!canDrag) return;
+
+            touchDraggingRef.current = true;
+
+            const position = getTouchPosition(currentTouch);
+
+            if (!position) return;
+
+            const {
+                dayIndex,
+                y,
+            } = position;
+
+            touchDayIndexRef.current = dayIndex;
+            touchYRef.current = y;
+
+            const snapped =
+                snap(y / PX_PER_MINUTE);
+
+            setHoverY(
+                snapped * PX_PER_MINUTE
+            );
+
+            setHoverDayIndex(dayIndex);
+
+            setPreview(y);
+
+            moveEvent.preventDefault();
+        };
+
+        /*
+         * Завършване на touch drag.
+         */
+        const endHandler = async () => {
+            clearTimeout(timer);
+            clearTimeout(pressTimer);
+
+            cleanupTouchDrag();
+
+            if (!touchMovedRef.current) {
+                touchStartRef.current = null;
+                return;
+            }
+
+            if (!touchDraggingRef.current) {
+                touchStartRef.current = null;
+                return;
+            }
+
+            const dayIndex = touchDayIndexRef.current;
+            const y = touchYRef.current;
+
+            if (
+                dayIndex === null ||
+                y === null ||
+                !weekDays?.[dayIndex]
+            ) {
+                touchStartRef.current = null;
+                touchDraggingRef.current = false;
+                return;
+            }
+
+            /*
+             * Оставяме touchMovedRef = true до следващия click,
+             * за да не се интерпретира отпускането като обикновен tap.
+             */
+            touchDraggingRef.current = false;
+
+            await handleDrop(
+                weekDays[dayIndex],
+                y
+            );
+
+            touchStartRef.current = null;
+            touchDayIndexRef.current = null;
+            touchYRef.current = null;
+        };
+
+        touchMoveHandlerRef.current = moveHandler;
+        touchEndHandlerRef.current = endHandler;
+
+        document.addEventListener(
+            "touchmove",
+            moveHandler,
+            { passive: false }
+        );
+
+        document.addEventListener(
+            "touchend",
+            endHandler
+        );
+    };
+
     return (
         <div
             key={a.id}
@@ -37,6 +276,15 @@ export default function AppointmentCard({
 
             onClick={(e) => {
                 e.stopPropagation();
+
+                /*
+                 * Ако току-що сме влачили срещата,
+                 * не допускаме touch release да стане click.
+                 */
+                if (touchMovedRef.current) {
+                    touchMovedRef.current = false;
+                    return;
+                }
 
                 if (isCancelled) {
                     return;
@@ -75,30 +323,13 @@ export default function AppointmentCard({
                 setPressTimer(timer);
             }}
 
-            onTouchStart={(e) => {
-                if (isCancelled) return;
-
-                setLongPressTriggered(false);
-
-                const touch = e.touches[0];
-
-                const timer = setTimeout(() => {
-                    setLongPressTriggered(true);
-
-                    setAppointmentMenu({
-                        x: touch.clientX,
-                        y: touch.clientY,
-                        appointment: a,
-                    });
-                }, 500);
-
-                setPressTimer(timer);
-            }}
+            onTouchStart={handleTouchStart}
 
             onMouseEnter={(e) => {
                 if (dragged) return;
 
-                const rect = e.currentTarget.getBoundingClientRect();
+                const rect =
+                    e.currentTarget.getBoundingClientRect();
 
                 setHoverPosition({
                     x: rect.left + rect.width / 2,
@@ -112,20 +343,6 @@ export default function AppointmentCard({
                 clearTimeout(pressTimer);
             }}
 
-            onTouchEnd={() => {
-                clearTimeout(pressTimer);
-
-                if (isCancelled) return;
-
-                if (longPressTriggered) {
-                    setLongPressTriggered(false);
-                    return;
-                }
-
-                setAppointmentMenu(null);
-                setActiveAppointment(a);
-            }}
-            
             onMouseLeave={() => {
                 clearTimeout(pressTimer);
 
@@ -168,14 +385,24 @@ export default function AppointmentCard({
                 width: `${width}%`,
 
                 opacity: isCancelled ? 0.5 : 1,
-                textDecoration: isCancelled ? "line-through" : "none",
+                textDecoration: isCancelled
+                    ? "line-through"
+                    : "none",
 
                 boxSizing: "border-box",
+
                 background: "#fff",
-                borderLeft: `4px solid ${borderColor}`,
+
+                borderLeft:
+                    `4px solid ${borderColor}`,
+
                 borderRadius: 6,
-                padding: "4px 4px 4px 6px",
+
+                padding:
+                    "4px 4px 4px 6px",
+
                 fontSize: 12,
+
                 overflow: "hidden",
 
                 cursor: isCancelled
@@ -184,7 +411,15 @@ export default function AppointmentCard({
                         ? "grabbing"
                         : "grab",
 
-                transition: "all 0.15s ease",
+                transition:
+                    "all 0.15s ease",
+
+                /*
+                 * Важно за touch drag:
+                 * браузърът няма да интерпретира движението
+                 * като page scroll върху самата среща.
+                 */
+                touchAction: "none",
 
                 transform:
                     activeAppointment?.id === a.id
@@ -192,7 +427,9 @@ export default function AppointmentCard({
                         : "scale(1)",
 
                 zIndex:
-                    activeAppointment?.id === a.id ? 20 : 10,
+                    activeAppointment?.id === a.id
+                        ? 20
+                        : 10,
 
                 boxShadow:
                     activeAppointment?.id === a.id
@@ -208,11 +445,21 @@ export default function AppointmentCard({
                         alignItems: "center",
                     }}
                 >
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>
+                    <div
+                        style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                        }}
+                    >
                         {a.client?.name}
 
                         {isCancelled && (
-                            <div style={{ fontSize: 10, color: "red" }}>
+                            <div
+                                style={{
+                                    fontSize: 10,
+                                    color: "red",
+                                }}
+                            >
                                 {a.cancelReason === "Преместена"
                                     ? "↪ Преместена"
                                     : "Отменена"}
@@ -226,7 +473,9 @@ export default function AppointmentCard({
 
                     <div>
                         {!isSeen && "🔔"}
-                        {isSeen && !isClientCancelled && "✅"}
+                        {isSeen &&
+                            !isClientCancelled &&
+                            "✅"}
                         {isClientCancelled && "❌"}
                     </div>
 
@@ -252,19 +501,35 @@ export default function AppointmentCard({
                 </div>
             </div>
 
-            <div style={{ fontSize: 11, color: "#555" }}>
-                {start.toLocaleTimeString(undefined, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })}
+            <div
+                style={{
+                    fontSize: 11,
+                    color: "#555",
+                }}
+            >
+                {start.toLocaleTimeString(
+                    undefined,
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }
+                )}
+
                 {" – "}
-                {end.toLocaleTimeString(undefined, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })}
+
+                {end.toLocaleTimeString(
+                    undefined,
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }
+                )}
 
                 {" • "}
-                {Math.round((end - start) / 1000 / 60)}m
+
+                {Math.round(
+                    (end - start) / 1000 / 60
+                )}m
             </div>
         </div>
     );
