@@ -740,10 +740,18 @@ export default function ClientAccess() {
             </div>
 
             {/* <h2 style={{ marginBottom: 20 }}>{client.name}</h2> */}
-            <h2 style={{ marginBottom: 20 }}>
+            <h2 style={{
+                marginBottom: 20,
+                color: "black",
+                background: "yellow",
+                display: "block",
+                visibility: "visible",
+                opacity: 1,
+                fontSize: 22
+            }}>
                 Hello, {clientInfo?.name}
             </h2>
-            
+
             <div style={{ fontSize: 12, color: "red", marginBottom: 20 }}>
                 DEBUG clientInfo: {JSON.stringify(clientInfo)}
             </div>
