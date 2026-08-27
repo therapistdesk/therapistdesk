@@ -60,26 +60,37 @@ export default function AppointmentCard({
      * Намира календарната колона под пръста.
      */
     const getTouchPosition = (touch) => {
-        const element = document.elementFromPoint(
+        const elements = document.elementsFromPoint(
             touch.clientX,
             touch.clientY
         );
 
-        if (!element) return null;
-
-        const column = element.closest("[data-dayindex]");
+        const column = elements.find((element) =>
+            element.closest("[data-dayindex]")
+        );
 
         if (!column) return null;
 
-        const dayIndex = Number(column.dataset.dayindex);
+        const dayColumn =
+            column.closest("[data-dayindex]");
 
-        if (!Number.isInteger(dayIndex)) return null;
+        if (!dayColumn) return null;
 
-        const rect = column.getBoundingClientRect();
-        const y = touch.clientY - rect.top;
+        const dayIndex =
+            Number(dayColumn.dataset.dayindex);
+
+        if (!Number.isInteger(dayIndex)) {
+            return null;
+        }
+
+        const rect =
+            dayColumn.getBoundingClientRect();
+
+        const y =
+            touch.clientY - rect.top;
 
         return {
-            column,
+            column: dayColumn,
             dayIndex,
             y,
         };
@@ -277,15 +288,6 @@ export default function AppointmentCard({
             onClick={(e) => {
                 e.stopPropagation();
 
-                /*
-                 * Ако току-що сме влачили срещата,
-                 * не допускаме touch release да стане click.
-                 */
-                if (touchMovedRef.current) {
-                    touchMovedRef.current = false;
-                    return;
-                }
-
                 if (isCancelled) {
                     return;
                 }
@@ -297,6 +299,8 @@ export default function AppointmentCard({
 
                 setAppointmentMenu(null);
                 setActiveAppointment(a);
+
+                touchMovedRef.current = false;
             }}
 
             onMouseMove={(e) => {
