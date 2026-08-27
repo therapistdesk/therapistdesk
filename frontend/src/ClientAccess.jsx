@@ -721,6 +721,7 @@ export default function ClientAccess() {
         );
     };
 
+    console.log("CLIENT INFO:", clientInfo);
     return (
         <div style={{
             padding: 20,
