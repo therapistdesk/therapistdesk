@@ -190,14 +190,49 @@ export default function AppointmentCard({
 
             touchDraggingRef.current = true;
 
+            // const position = getTouchPosition(currentTouch);
+
+            // if (!position) return;
+
+            // const {
+            //     dayIndex,
+            //     y,
+            // } = position;
             const position = getTouchPosition(currentTouch);
 
-            if (!position) return;
+            let dayIndex;
+            let y;
 
-            const {
-                dayIndex,
-                y,
-            } = position;
+            if (position) {
+                dayIndex = position.dayIndex;
+                y = position.y;
+            } else {
+                // При same-day drag пръстът може да е върху самата среща.
+                // В такъв случай използваме деня на срещата директно.
+                dayIndex = weekDays.findIndex((d) => {
+                    const appointmentDay = new Date(a.startTime);
+
+                    return (
+                        d.getFullYear() === appointmentDay.getFullYear() &&
+                        d.getMonth() === appointmentDay.getMonth() &&
+                        d.getDate() === appointmentDay.getDate()
+                    );
+                });
+
+                if (dayIndex === -1) return;
+
+                const columns =
+                    document.querySelectorAll("[data-dayindex]");
+
+                const column = columns[dayIndex];
+
+                if (!column) return;
+
+                const rect = column.getBoundingClientRect();
+
+                y = currentTouch.clientY - rect.top;
+            }
+            // ---
 
             touchDayIndexRef.current = dayIndex;
             touchYRef.current = y;
