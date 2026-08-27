@@ -721,7 +721,6 @@ export default function ClientAccess() {
         );
     };
 
-    console.log("CLIENT INFO:", clientInfo);
     return (
         <div style={{
             padding: 20,
@@ -742,19 +741,10 @@ export default function ClientAccess() {
             {/* <h2 style={{ marginBottom: 20 }}>{client.name}</h2> */}
             <h2 style={{
                 marginBottom: 20,
-                color: "black",
-                background: "yellow",
-                display: "block",
-                visibility: "visible",
-                opacity: 1,
-                fontSize: 22
+                color: "#111827"
             }}>
                 Hello, {clientInfo?.name}
             </h2>
-
-            <div style={{ fontSize: 12, color: "red", marginBottom: 20 }}>
-                DEBUG clientInfo: {JSON.stringify(clientInfo)}
-            </div>
 
             {appointments.length === 0 && <div>No meetings</div>}
 
