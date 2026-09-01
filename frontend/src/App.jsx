@@ -88,9 +88,7 @@ function App() {
     }
   }, []);
 
-  // console.log("APP RENDER");
   const [moveMode, setMoveMode] = useState(null);
-  // const navigate = useNavigate();
   const location = useLocation();
   const handleAddNote = (appointment) => {
     setAppointmentMenu(null);
@@ -294,7 +292,6 @@ function App() {
     if (!token) return;
 
     getMessages(token).then(data => {
-      // console.log("MESSAGES FROM API:", data);
       setMessages(data);
     });
   }, [token]);
@@ -302,18 +299,13 @@ function App() {
   useEffect(() => {
     if (!token) return;
 
-    // getMessages(token).then(setMessages);
     getMessages(token).then(data => {
-      // console.log("MESSAGES:", data);
       setMessages(data);
     });
   }, [token]);
 
   useEffect(() => {
-    // console.log("EFFECT TRIGGER:", selectedClient);
     if (selectedClient?.id) {
-      // console.log("AUTO SUBSCRIBE WITH CLIENT:", selectedClient.id);
-      // subscribePush();
       subscribePush({
         selectedClient,
         apiUrl: API_URL,
@@ -330,11 +322,7 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-
       const data = await res.json();
-
-      // console.log("CLIENTS:", data);
-
     }
 
     loadClients();
@@ -412,20 +400,6 @@ function App() {
         );
 
         const data = await res.json();
-        console.log("PRACTICE DATA:", data);
-
-        // console.log(
-        //   "INTERVAL TYPES:",
-        //   data.map((location) => ({
-        //     location: location.name,
-        //     intervals: location.workingIntervals?.map((i) => ({
-        //       day: i.day,
-        //       start: i.startMinutes,
-        //       end: i.endMinutes,
-        //       type: i.type,
-        //     })),
-        //   }))
-        // );
 
         if (!res.ok) {
           throw new Error("Failed to load practice locations");
@@ -443,8 +417,6 @@ function App() {
           "Failed to load practice locations:",
           err
         );
-
-        // console.log("PRACTICE LOCATIONS:", data);
       }
     }
 
@@ -749,8 +721,6 @@ function App() {
       end.setMinutes(end.getMinutes() + duration);
 
       // 🔥 ДОБАВЯМЕ DEBUG (много важно)
-      // console.log("CREATE CLICK", start.toISOString());
-
       await createAppointment(token, {
         clientId: selectedClient,
         practiceLocationId: selectedLocationId,
@@ -793,7 +763,6 @@ function App() {
     const data = await res.json();
 
     if (data.access_token) {
-      // console.log("THERAPIST 2", data.therapist);
       localStorage.setItem("token", data.access_token);
 
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -836,9 +805,7 @@ function App() {
     if (data.requiresVerification) {
       alert("Verification required");
     } else if (data.access_token) {
-      // console.log("THERAPIST 1", data.therapist);
       localStorage.setItem("token", data.access_token);
-
       // ако ти трябва refresh token
       if (data.refresh_token) {
         localStorage.setItem("refresh_token", data.refresh_token);
@@ -880,13 +847,27 @@ function App() {
   };
 
   // ===== DRAG =====
+  // ----------------------- 31.08.26
+  const calendarEventLockRef = useRef(false);
+
+  const acquireCalendarEventLock = () => {
+    if (calendarEventLockRef.current) return false;
+
+    calendarEventLockRef.current = true;
+    return true;
+  };
+
+  const releaseCalendarEventLock = () => {
+    calendarEventLockRef.current = false;
+  };
+  // -------------------- 31.08.26
+
   const handleDrop = async (day, yPosition) => {
     setHoverY(null);
     setHoverDayIndex(null);
     if (!dragged) return;
 
     let minutesFromTop = snap(yPosition / PX_PER_MINUTE);
-    // minutesFromTop = clamp(minutesFromTop, 0, 12 * 60);
     minutesFromTop = clamp(
       minutesFromTop,
       0,
@@ -971,8 +952,6 @@ function App() {
     <Route path="/client-access/:id" element={<ClientAccess />} />
   </Routes>
 
-  // console.log("CLIENTS:", clients);
-
   if (mode === "settings-home") {
     return (
       <SettingsPage
@@ -1054,19 +1033,14 @@ function App() {
             })
 
             .map((c) => {
-              // console.log("CLIENT ROW", c);
-              // if (!c.client) return null;
               if (!c) return null;
 
               return (
                 <div
-                  // key={c.client.id}
                   key={c.id}
                   ref={(el) => (clientRefs.current[c.id] = el)}
                   onClick={() => {
-                    // setSelectedClient(c.client);
                     setSelectedClient(c);
-                    setActiveBlockMode(null);
                   }}
                   onMouseDown={(e) => {
                     const timer = setTimeout(() => {
@@ -1142,7 +1116,6 @@ function App() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      // console.log("CLICK", c);
                       setQrClient(c);
                     }}
                   >
@@ -1380,7 +1353,7 @@ function App() {
                 setHoverDayIndex(dayIndex);
                 setPreview(y);
 
-                e.preventDefault();
+                // e.preventDefault();
               }}
 
               onDragOver={(e) => {
@@ -1596,7 +1569,6 @@ function App() {
 
               {events
                 .map((a) => {
-                  // console.log("CALENDAR APPOINTMENT:", a);
                   const {
                     start,
                     end,
@@ -1645,6 +1617,7 @@ function App() {
                           setDragged,
                         })
                       }
+                      setDragged={setDragged}
                       handleDrop={handleDrop}
                       day={weekDays[dayIndex]}
                       weekDays={weekDays}
@@ -1659,6 +1632,8 @@ function App() {
                       token={token}
                       t={t}
                       lang={lang}
+                      acquireCalendarEventLock={acquireCalendarEventLock}
+                      releaseCalendarEventLock={releaseCalendarEventLock}
                     />
 
                   );
