@@ -495,48 +495,104 @@ export class AppointmentsService {
     });
   }
 
+  // async findForUser(userId: number, query: any) {
+  //   const therapist = await this.prisma.therapist.findUnique({
+  //     where: { userId },
+  //     include: {
+  //       user: true,
+  //     },
+  //   });
+
+  //   if (!therapist) {
+  //     throw new NotFoundException('Therapist not found');
+  //   }
+
+  //   const where: any = {
+  //     therapistId: therapist.id,
+  //   };
+
+  //   if (query?.start && query?.end) {
+  //     const start = Number(query.start);
+  //     const end = Number(query.end);
+
+  //     if (!isNaN(start) && !isNaN(end)) {
+  //       where.startTime = {
+  //         gte: new Date(start),
+  //         lte: new Date(end),
+  //       };
+  //     }
+  //   }
+
+  //   return this.prisma.appointment.findMany({
+  //     where,
+  //     include: {
+  //       client: true,
+  //       messages: true,
+  //       therapist: true,
+  //       service: true,
+  //       practiceLocation: true,
+  //     },
+  //     orderBy: {
+  //       startTime: 'asc',
+  //     },
+  //   });
+  // }
+
   async findForUser(userId: number, query: any) {
-    const therapist = await this.prisma.therapist.findUnique({
-      where: { userId },
-      include: {
-        user: true,
-      },
-    });
+  console.time('APPOINTMENTS findForUser TOTAL');
 
-    if (!therapist) {
-      throw new NotFoundException('Therapist not found');
-    }
+  console.time('APPOINTMENTS therapist.findUnique');
 
-    const where: any = {
-      therapistId: therapist.id,
-    };
+  const therapist = await this.prisma.therapist.findUnique({
+    where: { userId },
+    include: {
+      user: true,
+    },
+  });
 
-    if (query?.start && query?.end) {
-      const start = Number(query.start);
-      const end = Number(query.end);
+  console.timeEnd('APPOINTMENTS therapist.findUnique');
 
-      if (!isNaN(start) && !isNaN(end)) {
-        where.startTime = {
-          gte: new Date(start),
-          lte: new Date(end),
-        };
-      }
-    }
-
-    return this.prisma.appointment.findMany({
-      where,
-      include: {
-        client: true,
-        messages: true,
-        therapist: true,
-        service: true,
-        practiceLocation: true,
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
-    });
+  if (!therapist) {
+    throw new NotFoundException('Therapist not found');
   }
+
+  const where: any = {
+    therapistId: therapist.id,
+  };
+
+  if (query?.start && query?.end) {
+    const start = Number(query.start);
+    const end = Number(query.end);
+
+    if (!isNaN(start) && !isNaN(end)) {
+      where.startTime = {
+        gte: new Date(start),
+        lte: new Date(end),
+      };
+    }
+  }
+
+  console.time('APPOINTMENTS appointment.findMany');
+
+  const appointments = await this.prisma.appointment.findMany({
+    where,
+    include: {
+      client: true,
+      messages: true,
+      therapist: true,
+      service: true,
+      practiceLocation: true,
+    },
+    orderBy: {
+      startTime: 'asc',
+    },
+  });
+
+  console.timeEnd('APPOINTMENTS appointment.findMany');
+  console.timeEnd('APPOINTMENTS findForUser TOTAL');
+
+  return appointments;
+}
 
   async markSeen(id: number, token: string) {
     const appointment = await this.prisma.appointment.findUnique({
