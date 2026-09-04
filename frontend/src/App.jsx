@@ -385,43 +385,82 @@ function App() {
     }
   }, [location]);
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   if (!token) return;
+
+  //   async function loadPracticeLocations() {
+  //     try {
+  //       const res = await fetch(
+  //         `${API_URL}/settings/practice`,
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         }
+  //       );
+
+  //       const data = await res.json();
+
+  //       if (!res.ok) {
+  //         throw new Error("Failed to load practice locations");
+  //       }
+
+  //       setPracticeLocations(
+  //         Array.isArray(data?.practiceLocations)
+  //           ? data.practiceLocations
+  //           : Array.isArray(data)
+  //             ? data
+  //             : []
+  //       );
+  //     } catch (err) {
+  //       console.error(
+  //         "Failed to load practice locations:",
+  //         err
+  //       );
+  //     }
+  //   }
+
+  //   loadPracticeLocations();
+  // }, [token]);
+
+  async function loadPracticeLocations() {
     if (!token) return;
 
-    async function loadPracticeLocations() {
-      try {
-        const res = await fetch(
-          `${API_URL}/settings/practice`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error("Failed to load practice locations");
+    try {
+      const res = await fetch(
+        `${API_URL}/settings/practice`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-        setPracticeLocations(
-          Array.isArray(data?.practiceLocations)
-            ? data.practiceLocations
-            : Array.isArray(data)
-              ? data
-              : []
-        );
-      } catch (err) {
-        console.error(
-          "Failed to load practice locations:",
-          err
-        );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error("Failed to load practice locations");
       }
-    }
 
+      setPracticeLocations(
+        Array.isArray(data?.practiceLocations)
+          ? data.practiceLocations
+          : Array.isArray(data)
+            ? data
+            : []
+      );
+    } catch (err) {
+      console.error(
+        "Failed to load practice locations:",
+        err
+      );
+    }
+  }
+
+  useEffect(() => {
     loadPracticeLocations();
   }, [token]);
+
 
   const selectedLocation = practiceLocations.find(
     (location) => location.id === selectedLocationId
@@ -863,11 +902,13 @@ function App() {
   // -------------------- 31.08.26
 
   const handleDrop = async (day, yPosition) => {
+
     setHoverY(null);
     setHoverDayIndex(null);
     if (!dragged) return;
 
     let minutesFromTop = snap(yPosition / PX_PER_MINUTE);
+    // minutesFromTop = clamp(minutesFromTop, 0, 12 * 60);
     minutesFromTop = clamp(
       minutesFromTop,
       0,
@@ -955,7 +996,10 @@ function App() {
   if (mode === "settings-home") {
     return (
       <SettingsPage
-        onBack={() => setMode("calendar")}
+        onBack={async () => {
+          await loadPracticeLocations();
+          setMode("calendar");
+        }}
       />
     );
   }
@@ -963,683 +1007,764 @@ function App() {
   return (
     <>
       <div
-        style={{ padding: 20 }}
+        style={{ padding: 8 }}
         onMouseDown={() => {
           setActiveAppointment(null);
         }}
       >
-        {/* старо */}
-        {/* <h2>TherapistDesk</h2>
 
-        <div>
-          Добре дошъл, {therapist?.firstName} {therapist?.lastName}
-        </div> */}
         <TopBar
           therapist={therapist}
           moveMode={moveMode}
           clients={clients}
           selectedClient={selectedClient}
           setMode={setMode}
+          lang={lang}
+          setLang={setLang}
         />
 
-        <div style={{ marginBottom: 10 }}>
-          <button
-            onClick={() => {
-              setLang("bg");
-              localStorage.setItem("lang", "bg");
-            }}
-          >
-            BG
-          </button>
-
-          <button
-            onClick={() => {
-              setLang("en");
-              localStorage.setItem("lang", "en");
-            }}
-            style={{ marginLeft: 5 }}
-          >
-            EN
-          </button>
-        </div>
-
-        <input
-          placeholder={t("searchClient", lang)}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <div style={{ marginTop: 10 }}>
-          <input
-            placeholder={t("enterClientName", lang)}
-            value={newClientName}
-            onChange={(e) => setNewClientName(e.target.value)}
-            style={{ marginRight: 5 }}
-          />
-
-          <button onClick={() => setShowAddClient(true)}>
-            {t("addClient", lang)}
-          </button>
-        </div>
-
-        <div style={{ maxHeight: 120, overflow: "auto", border: "1px solid #ccc" }}>
-          {clients
-            // .filter((c) =>
-            //   c.client?.name?.toLowerCase().includes(search.toLowerCase())
-            // )
-            .filter((c) => {
-              const name = c.client?.name || c.name || "";
-              return name.toLowerCase().includes((search || "").toLowerCase());
-            })
-
-            .map((c) => {
-              if (!c) return null;
-
-              return (
-                <div
-                  key={c.id}
-                  ref={(el) => (clientRefs.current[c.id] = el)}
-                  onClick={() => {
-                    setSelectedClient(c);
-                  }}
-                  onMouseDown={(e) => {
-                    const timer = setTimeout(() => {
-                      setClientMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        client: c,
-                      });
-                    }, 600);
-
-                    setPressTimer(timer);
-                  }}
-                  onMouseUp={() => {
-                    clearTimeout(pressTimer);
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setClientMenu({
-                      x: e.clientX,
-                      y: e.clientY,
-                      client: c,
-                    });
-                  }}
-                  style={{
-                    padding: 5,
-                    cursor: "pointer",
-                    background:
-                      newClientId === c.id
-                        ? "#fff59d"
-                        // : selectedClient?.id === c.client.id
-                        : selectedClient?.id === c.id
-                          ? "#c8e6c9"
-                          : "white",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {/* {c.client.name} */}
-                  {c.name}
-                  {c.alias && ` (${c.alias})`}
-
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-
-                      const confirmDelete = window.confirm(t("deleteAppointment", lang));
-                      if (!confirmDelete) return;
-
-                      const hasAppointments = appointments.some(
-                        // (a) => a.client?.id === c.client.id
-                        (a) => a.client?.id === c.id && a.status !== "cancelled"
-                      );
-
-                      if (hasAppointments) {
-                        alert(t("clientHasAppointments", lang));
-                        return;
-                      }
-
-                      await fetch(`${API_URL}/clients/${c.id}`, {
-                        method: "DELETE",
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
-                      });
-
-                      const updated = await getClients(token);
-                      setClients(updated);
-                    }}
-                    style={{ marginLeft: 10 }}
-                  >
-                    ❌
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setQrClient(c);
-                    }}
-                  >
-                    QR
-                  </button>
-                </div>
-              );
-            })}
-
-        </div>
-
-        <hr />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <label>{t("service", lang)}: </label>
-
-          <select
-            value={selectedServiceId ?? ""}
-            onChange={(e) =>
-              setSelectedServiceId(
-                e.target.value ? Number(e.target.value) : null
-              )
-            }
-          >
-            <option value="">-- избери услуга --</option>
-
-            {availableServices.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.name} ({service.defaultDurationMinutes} min)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <hr />
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <CalendarNavigation
-            setCurrentDate={setCurrentDate}
-            selectedClient={selectedClient}
-            setShowRecurring={setShowRecurring}
-            selectedDate={selectedDate}
-          />
-
-          {practiceLocations.length > 0 && (
-            <select
-              value={selectedLocationId ?? ""}
-              onChange={(e) =>
-                setSelectedLocationId(Number(e.target.value))
-              }
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                border: "1px solid #ccc",
-                background: "#fff",
-                fontSize: 14,
-              }}
-            >
-              {practiceLocations
-                .filter((location) => location.isActive !== false)
-                .map((location) => (
-                  <option
-                    key={location.id}
-                    value={location.id}
-                  >
-                    📍 {location.name}
-                  </option>
-                ))}
-            </select>
-          )}
-        </div>
-
-        <div style={{ fontWeight: "bold", marginBottom: 5 }}>
-          {baseDate.toLocaleDateString(lang === "bg" ? "bg-BG" : "en-US", {
-            month: "long",
-            year: "numeric",
-          })}
-        </div>
-
-        {/* CALENDAR */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "80px repeat(7, 1fr)",
-            gridAutoColumns: "1fr",
-            // position: "relative",
-            position: "static",
-            pointerEvents: "none",
-            height: "80vh",
-            overflowY: "auto",
-            alignContent: "start",
-            paddingTop: 40,
+            width: "100%",
+            boxSizing: "border-box",
+            gridTemplateColumns: "300px minmax(0, 1fr)",
+            gap: 20,
+            alignItems: "start",
           }}
         >
 
+          {/* ================= LEFT COLUMN ================= */}
           <div
             style={{
-              height: 0,              // 👈 вместо 30
-              position: "sticky",
-              top: 0,
-              background: "transparent", // 👈 да не покрива
-              zIndex: 0,              // 👈 да не е над часовете
-            }}
-          ></div>
-
-          {weekDays.map((d, i) => (
-            <div
-              key={i}
-              style={{
-                textAlign: "center",
-                fontWeight: hoverDayIndex === i ? "bold" : "normal",
-                fontSize: hoverDayIndex === i ? 16 : 13,
-                transition: "all 0.15s ease",
-                zIndex: 20,
-                background: "#fff",
-
-
-                background:
-                  new Date(d).toDateString() === new Date().toDateString()
-                    ? "#e3f2fd"
-                    : "transparent",
-                borderBottom:
-                  new Date(d).toDateString() === new Date().toDateString()
-                    ? "2px solid #2196f3"
-                    : "none",
-              }}
-            >
-              {dayNames[i]} <br />
-              {d.toLocaleDateString()}
-            </div>
-          ))}
-
-          {/* TIME */}
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
+              width: "100%",
+              padding: 14,
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              background: "#fafafa",
+              boxSizing: "border-box",
             }}
           >
-            {Array.from({
-              // length: ((WORK_END * 60 + WORK_END_MINUTE) - WORK_START * 60) / SLOT
-              length: (DAY_END - DAY_START) / SLOT + 1
-            }).map((_, i) => {
-              // const totalMin = WORK_START * 60 + i * SLOT;
-              const totalMin = DAY_START + i * SLOT;
-              const hour = Math.floor(totalMin / 60);
-              const min = (totalMin % 60).toString().padStart(2, "0");
 
-              return (
-                <div
-                  key={i}
-                  style={{
-                    height: SLOT,
-                    boxSizing: "border-box",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    paddingRight: 6,
-                    borderTop: "1px solid #eee",
-                    background: "#fff",
-                  }}
-                >
-                  {hour}:{min}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* DAYS */}
-          {eventsByDay.map((events, dayIndex) => (
-
+            {/* CLIENT SEARCH / NEW CLIENT */}
             <div
-              key={dayIndex}
-              data-dayindex={dayIndex}
-
-              onClickCapture={(e) => {
-                // изпълнява се само веднъж за целия клик
-                if (e.nativeEvent.__handled) return;
-                e.nativeEvent.__handled = true;
-
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-
-                // if (!selectedClient) return;
-                if (!selectedClient && !moveMode) return;
-
-                handleSlotClick(weekDays[dayIndex], y);
-              }}
-
               style={{
-                position: "relative",
-                borderLeft: "1px solid #ccc",
-                height: DAY_END - DAY_START + SLOT,
-                overflow: "hidden",
-                pointerEvents: "auto",
-                width: "100%",
-                backgroundImage: "repeating-linear-gradient(to bottom, #eee 0px, #eee 1px, transparent 1px, transparent 30px)",
-              }}
-
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-
-                const snapped = snap(y / PX_PER_MINUTE);
-
-                setHoverY(snapped * PX_PER_MINUTE);
-                setHoverDayIndex(dayIndex);
-
-                // 👉 ВРЪЩАМЕ визуалния hover
-                setHoverY(snapped * PX_PER_MINUTE);
-                setHoverDayIndex(dayIndex);
-
-                if (dragged) {
-                  setPreview(y);
-                }
-              }}
-
-              onTouchMove={(e) => {
-                if (!dragged) return;
-
-                const touch = e.touches[0];
-
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
-
-                const snapped = snap(y / PX_PER_MINUTE);
-
-                setHoverY(snapped * PX_PER_MINUTE);
-                setHoverDayIndex(dayIndex);
-                setPreview(y);
-
-                // e.preventDefault();
-              }}
-
-              onDragOver={(e) => {
-                e.preventDefault();
-
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-
-                const snapped = snap(y / PX_PER_MINUTE);
-
-                // 👉 обновява линиите по време на drag
-                setHoverY(snapped * PX_PER_MINUTE);
-                setHoverDayIndex(dayIndex);
-
-                // (по желание) ако ползваш preview при drag
-                setPreview(y);
-              }}
-
-              onDrop={(e) => {
-                e.preventDefault();
-
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-
-                handleDrop(weekDays[dayIndex], y);
-              }}
-
-              onMouseLeave={() => {
-                if (!dragged) {
-                  setHoverY(null);
-                  setPreview(null);
-                }
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+                flexWrap: "wrap",
               }}
             >
+              <input
+                placeholder={t("searchClient", lang)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
 
-              {new Date(weekDays[dayIndex]).toDateString() ===
-                new Date().toDateString() && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      width: 3,
-                      background: "#2196f3",
-                      zIndex: 20,
-                    }}
-                  />
-                )}
-
-              {!selectedClient && dayIndex === 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    left: 10,
-                    right: 10,
-                    background: "#fff3cd",
-                    padding: 6,
-                    fontSize: 12,
-                    border: "1px solid #ffeeba",
-                    zIndex: 5,
-                  }}
-                >
-                  {t("selectClientHint", lang)}
-                </div>
-              )}
-
-              {/* GRID + WORKING HOURS */}
-              {Array.from({
-                length: (DAY_END - DAY_START) / SLOT + 1,
-              }).map((_, i) => {
-                const minutes = DAY_START + i * SLOT;
-                const day = weekDays[dayIndex];
-
-                const workingIntervals = getDayWorkingIntervals(day);
-
-                const activeInterval = workingIntervals.find(
-                  (interval) =>
-                    minutes >= interval.start &&
-                    minutes < interval.end + SLOT
-                );
-
-
-                const isWorking = activeInterval?.type === "work";
-                const isBreak = activeInterval?.type === "break";
-
-                const isPast =
-                  isPastDateTime(day, minutes) ||
-                  !activeInterval;
-
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      position: "absolute",
-                      top: i * SLOT,
-                      height: SLOT,
-                      left: 0,
-                      right: 0,
-                      borderTop:
-                        i % 2 === 0
-                          ? "1px solid #eee"
-                          : "1px dashed #ddd",
-                      background:
-                        isBreak
-                          ? "#dff3e3"
-                          : !isWorking || isPast
-                            ? "#f5f5f5"
-                            : "transparent",
-
-                      pointerEvents:
-                        isWorking && !isPast ? "none" : "auto",
-                    }}
-                    onClickCapture={(e) => {
-                      if (!isWorking || isPast) {
-                        e.stopPropagation();
-                      }
-                    }}
-
-                    onMouseDown={(e) => {
-                      if (!isWorking || isPast) {
-                        e.stopPropagation();
-                      }
-                    }}
-
-                    onDragOver={(e) => {
-                      if (!isWorking || isPast) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-
-                    onDrop={(e) => {
-                      if (!isWorking || isPast) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-                    }}
-                  />
-                );
-              })}
-
-              {/* ACTIVE COLUMN + VERTICAL LINE */}
-              {hoverDayIndex === dayIndex && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    pointerEvents: "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      background: "rgba(255,0,0,0.03)",
-                      pointerEvents: "none",
-                      zIndex: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      width: 2,
-                      background: "red",
-                      opacity: 0.4,
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* ACTIVE ROW + HOVER LINE */}
-              {hoverY !== null && (
-                <>
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: hoverY,
-                      height: SLOT,
-                      left: 0,
-                      right: 0,
-                      background: "rgba(255,0,0,0.05)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: hoverY,
-                      left: 0,
-                      right: 0,
-                      height: 2,
-                      background: "red",
-                      opacity: 0.6,
-                      pointerEvents: "none",   // 👈 добави
-                      zIndex: 0,               // 👈 добави
-                    }}
-                  />
-                </>
-              )}
-
-              {/* PREVIEW */}
-
-              {events
-                .map((a) => {
-                  const {
-                    start,
-                    end,
-                    top,
-                    height,
-                    width,
-                    left,
-                    borderColor,
-                    isSeen,
-                    isCancelled,
-                    isConfirmed,
-                    isClientCancelled,
-                  } = getAppointmentLayout(a, {
-                    DAY_START,
-                    PX_PER_MINUTE,
-                  });
+              <button onClick={() => setShowAddClient(true)}>
+                {t("addClient", lang)}
+              </button>
+            </div>
+            <div
+              style={{
+                borderBottom: "1px solid #ddd",
+                marginBottom: 10,
+              }}
+            />
+            {/* CLIENT LIST */}
+            <div
+              style={{
+                maxHeight: 240,
+                overflow: "auto",
+                border: "1px solid #ccc",
+              }}
+            >
+              {clients
+                .filter((c) => {
+                  const name = c.client?.name || c.name || "";
+                  return name
+                    .toLowerCase()
+                    .includes((search || "").toLowerCase());
+                })
+                .map((c) => {
+                  if (!c) return null;
 
                   return (
-                    <AppointmentCard
-                      a={a}
-                      start={start}
-                      end={end}
-                      top={top}
-                      height={height}
-                      width={width}
-                      left={left}
-                      borderColor={borderColor}
-                      isSeen={isSeen}
-                      isCancelled={isCancelled}
-                      isClientCancelled={isClientCancelled}
-                      canDrag={!isCancelled}
-                      activeAppointment={activeAppointment}
-                      dragged={dragged}
-                      hoverY={hoverY}
-                      longPressTriggered={longPressTriggered}
-                      pressTimer={pressTimer}
-                      setLongPressTriggered={setLongPressTriggered}
-                      setAppointmentMenu={setAppointmentMenu}
-                      setPressTimer={setPressTimer}
-                      setHoverPosition={setHoverPosition}
-                      setActiveAppointment={setActiveAppointment}
-                      handleDragStart={(e, a) =>
-                        handleAppointmentDragStart(e, a, {
-                          setHoverY,
-                          setHoverDayIndex,
-                          setDragged,
-                        })
-                      }
-                      setDragged={setDragged}
-                      handleDrop={handleDrop}
-                      day={weekDays[dayIndex]}
-                      weekDays={weekDays}
-                      snap={snap}
-                      PX_PER_MINUTE={PX_PER_MINUTE}
-                      setHoverY={setHoverY}
-                      setHoverDayIndex={setHoverDayIndex}
-                      setPreview={setPreview}
-                      handleAddNote={handleAddNote}
-                      deleteAppointment={deleteAppointment}
-                      reloadAppointments={reloadAppointments}
-                      token={token}
-                      t={t}
-                      lang={lang}
-                      acquireCalendarEventLock={acquireCalendarEventLock}
-                      releaseCalendarEventLock={releaseCalendarEventLock}
-                    />
+                    <div
+                      key={c.id}
+                      ref={(el) => (clientRefs.current[c.id] = el)}
+                      onClick={() => {
+                        setSelectedClient(c);
+                      }}
+                      onMouseDown={(e) => {
+                        const timer = setTimeout(() => {
+                          setClientMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            client: c,
+                          });
+                        }, 600);
 
+                        setPressTimer(timer);
+                      }}
+                      onMouseUp={() => {
+                        clearTimeout(pressTimer);
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setClientMenu({
+                          x: e.clientX,
+                          y: e.clientY,
+                          client: c,
+                        });
+                      }}
+                      style={{
+                        padding: 5,
+                        cursor: "pointer",
+                        background:
+                          newClientId === c.id
+                            ? "#fff59d"
+                            : selectedClient?.id === c.id
+                              ? "#c8e6c9"
+                              : "white",
+                        transition: "all 0.3s ease",
+                      }}
+                    >
+                      {c.name}
+                      {c.alias && ` (${c.alias})`}
+
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+
+                          const confirmDelete = window.confirm(
+                            t("deleteAppointment", lang)
+                          );
+                          if (!confirmDelete) return;
+
+                          const hasAppointments = appointments.some(
+                            (a) =>
+                              a.client?.id === c.id &&
+                              a.status !== "cancelled"
+                          );
+
+                          if (hasAppointments) {
+                            alert(t("clientHasAppointments", lang));
+                            return;
+                          }
+
+                          await fetch(`${API_URL}/clients/${c.id}`, {
+                            method: "DELETE",
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          });
+
+                          const updated = await getClients(token);
+                          setClients(updated);
+                        }}
+                        style={{ marginLeft: 10 }}
+                      >
+                        ❌
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrClient(c);
+                        }}
+                      >
+                        QR
+                      </button>
+                    </div>
                   );
                 })}
             </div>
-          ))}
+
+            {/* LOCATION + SERVICE */}
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+
+              {practiceLocations.length > 0 && (
+                <div>
+                  <label>{t("location", lang)}:</label>
+
+                  <select
+                    value={selectedLocationId ?? ""}
+                    onChange={(e) =>
+                      setSelectedLocationId(Number(e.target.value))
+                    }
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      background: "#fff",
+                      fontSize: 14,
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {practiceLocations
+                      .filter((location) => location.isActive !== false)
+                      .map((location) => (
+                        <option key={location.id} value={location.id}>
+                          📍 {location.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              <label>{t("service", lang)}:</label>
+
+              <select
+                value={selectedServiceId ?? ""}
+                onChange={(e) =>
+                  setSelectedServiceId(
+                    e.target.value ? Number(e.target.value) : null
+                  )
+                }
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">-- избери услуга --</option>
+
+                {availableServices.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.category?.name} {service.name} (
+                    {service.defaultDurationMinutes} min)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ================= RIGHT COLUMN ================= */}
+          <div>
+
+            {/* CALENDAR NAVIGATION */}
+            <div
+              style={{
+                marginBottom: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <CalendarNavigation
+                setCurrentDate={setCurrentDate}
+                selectedClient={selectedClient}
+                setShowRecurring={setShowRecurring}
+                selectedDate={selectedDate}
+              />
+            </div>
+
+            {/* CALENDAR */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "80px repeat(7, 1fr)",
+                gridAutoColumns: "1fr",
+                position: "static",
+                pointerEvents: "none",
+                height: "80vh",
+                overflowY: "auto",
+                alignContent: "start",
+                paddingTop: 0,
+              }}
+            >
+
+              <div
+                style={{
+                  height: 40,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "bold",
+                  fontSize: 13,
+                  lineHeight: 1.2,
+                  background: "#fff",
+                  zIndex: 20,
+                }}
+              >
+                <div>
+                  {baseDate.toLocaleDateString("en-US", {
+                    month: "short",
+                  }).toUpperCase()}
+                </div>
+                <div>{baseDate.getFullYear()}</div>
+              </div>
+
+              {weekDays.map((d, i) => (
+                <div
+                  key={i}
+                  style={{
+                    textAlign: "center",
+                    fontWeight:
+                      hoverDayIndex === i ? "bold" : "normal",
+                    fontSize:
+                      hoverDayIndex === i ? 16 : 13,
+                    transition: "all 0.15s ease",
+                    zIndex: 20,
+                    background:
+                      new Date(d).toDateString() ===
+                        new Date().toDateString()
+                        ? "#e3f2fd"
+                        : "transparent",
+                    borderBottom:
+                      new Date(d).toDateString() ===
+                        new Date().toDateString()
+                        ? "2px solid #2196f3"
+                        : "none",
+                  }}
+                >
+                  {dayNames[i]} <br />
+                  {d.toLocaleDateString()}
+                </div>
+              ))}
+
+              {/* TIME */}
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                }}
+              >
+                {Array.from({
+                  length: (DAY_END - DAY_START) / SLOT + 1,
+                }).map((_, i) => {
+                  const totalMin = DAY_START + i * SLOT;
+                  const hour = Math.floor(totalMin / 60);
+                  const min = (totalMin % 60)
+                    .toString()
+                    .padStart(2, "0");
+
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        height: SLOT,
+                        boxSizing: "border-box",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        paddingRight: 6,
+                        borderTop: "1px solid #eee",
+                        background: "#fff",
+                      }}
+                    >
+                      {hour}:{min}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DAYS */}
+              {eventsByDay.map((events, dayIndex) => (
+
+                <div
+                  key={dayIndex}
+                  data-dayindex={dayIndex}
+
+                  onClickCapture={(e) => {
+                    if (e.nativeEvent.__handled) return;
+                    e.nativeEvent.__handled = true;
+
+                    const rect =
+                      e.currentTarget.getBoundingClientRect();
+
+                    const y = e.clientY - rect.top;
+
+                    if (!selectedClient && !moveMode) return;
+
+                    handleSlotClick(
+                      weekDays[dayIndex],
+                      y
+                    );
+                  }}
+
+                  style={{
+                    position: "relative",
+                    borderLeft: "1px solid #ccc",
+                    height: DAY_END - DAY_START + SLOT,
+                    overflow: "hidden",
+                    pointerEvents: "auto",
+                    width: "100%",
+                    backgroundImage:
+                      "repeating-linear-gradient(to bottom, #eee 0px, #eee 1px, transparent 1px, transparent 30px)",
+                  }}
+
+                  onMouseMove={(e) => {
+                    const rect =
+                      e.currentTarget.getBoundingClientRect();
+
+                    const y = e.clientY - rect.top;
+                    const snapped = snap(y / PX_PER_MINUTE);
+
+                    setHoverY(snapped * PX_PER_MINUTE);
+                    setHoverDayIndex(dayIndex);
+
+                    if (dragged) {
+                      setPreview(y);
+                    }
+                  }}
+
+                  onTouchMove={(e) => {
+                    if (!dragged) return;
+
+                    const touch = e.touches[0];
+
+                    const rect =
+                      e.currentTarget.getBoundingClientRect();
+
+                    const y = touch.clientY - rect.top;
+                    const snapped = snap(y / PX_PER_MINUTE);
+
+                    setHoverY(snapped * PX_PER_MINUTE);
+                    setHoverDayIndex(dayIndex);
+                    setPreview(y);
+                  }}
+
+                  onDragOver={(e) => {
+                    e.preventDefault();
+
+                    const rect =
+                      e.currentTarget.getBoundingClientRect();
+
+                    const y = e.clientY - rect.top;
+                    const snapped = snap(y / PX_PER_MINUTE);
+
+                    setHoverY(snapped * PX_PER_MINUTE);
+                    setHoverDayIndex(dayIndex);
+                    setPreview(y);
+                  }}
+
+                  onDrop={(e) => {
+                    e.preventDefault();
+
+                    const rect =
+                      e.currentTarget.getBoundingClientRect();
+
+                    const y = e.clientY - rect.top;
+
+                    handleDrop(
+                      weekDays[dayIndex],
+                      y
+                    );
+                  }}
+
+                  onMouseLeave={() => {
+                    if (!dragged) {
+                      setHoverY(null);
+                      setPreview(null);
+                    }
+                  }}
+                >
+
+                  {new Date(
+                    weekDays[dayIndex]
+                  ).toDateString() ===
+                    new Date().toDateString() && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          width: 3,
+                          background: "#2196f3",
+                          zIndex: 20,
+                        }}
+                      />
+                    )}
+
+                  {!selectedClient && dayIndex === 0 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        left: 10,
+                        right: 10,
+                        background: "#fff3cd",
+                        padding: 6,
+                        fontSize: 12,
+                        border: "1px solid #ffeeba",
+                        zIndex: 5,
+                      }}
+                    >
+                      {t("selectClientHint", lang)}
+                    </div>
+                  )}
+
+                  {/* GRID + WORKING HOURS */}
+                  {Array.from({
+                    length:
+                      (DAY_END - DAY_START) / SLOT + 1,
+                  }).map((_, i) => {
+                    const minutes = DAY_START + i * SLOT;
+                    const day = weekDays[dayIndex];
+
+                    const workingIntervals =
+                      getDayWorkingIntervals(day);
+
+                    const activeInterval =
+                      workingIntervals.find(
+                        (interval) =>
+                          minutes >= interval.start &&
+                          minutes < interval.end + SLOT
+                      );
+
+                    const isWorking =
+                      activeInterval?.type === "work";
+
+                    const isBreak =
+                      activeInterval?.type === "break";
+
+                    const isPast =
+                      isPastDateTime(day, minutes) ||
+                      !activeInterval;
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          position: "absolute",
+                          top: i * SLOT,
+                          height: SLOT,
+                          left: 0,
+                          right: 0,
+                          borderTop:
+                            i % 2 === 0
+                              ? "1px solid #eee"
+                              : "1px dashed #ddd",
+                          background:
+                            isBreak
+                              ? "#dff3e3"
+                              : !isWorking || isPast
+                                ? "#f5f5f5"
+                                : "transparent",
+
+                          pointerEvents:
+                            isWorking && !isPast
+                              ? "none"
+                              : "auto",
+                        }}
+
+                        onClickCapture={(e) => {
+                          if (!isWorking || isPast) {
+                            e.stopPropagation();
+                          }
+                        }}
+
+                        onMouseDown={(e) => {
+                          if (!isWorking || isPast) {
+                            e.stopPropagation();
+                          }
+                        }}
+
+                        onDragOver={(e) => {
+                          if (!isWorking || isPast) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+
+                        onDrop={(e) => {
+                          if (!isWorking || isPast) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* ACTIVE COLUMN + VERTICAL LINE */}
+                  {hoverDayIndex === dayIndex && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: "rgba(255,0,0,0.03)",
+                          pointerEvents: "none",
+                          zIndex: 0,
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          width: 2,
+                          background: "red",
+                          opacity: 0.4,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* ACTIVE ROW + HOVER LINE */}
+                  {hoverY !== null && (
+                    <>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: hoverY,
+                          height: SLOT,
+                          left: 0,
+                          right: 0,
+                          background: "rgba(255,0,0,0.05)",
+                          pointerEvents: "none",
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: hoverY,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          background: "red",
+                          opacity: 0.6,
+                          pointerEvents: "none",
+                          zIndex: 0,
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {/* APPOINTMENTS */}
+                  {events.map((a) => {
+                    const {
+                      start,
+                      end,
+                      top,
+                      height,
+                      width,
+                      left,
+                      borderColor,
+                      isSeen,
+                      isCancelled,
+                      isConfirmed,
+                      isClientCancelled,
+                    } = getAppointmentLayout(a, {
+                      DAY_START,
+                      PX_PER_MINUTE,
+                    });
+
+                    return (
+                      <AppointmentCard
+                        key={a.id}
+                        a={a}
+                        start={start}
+                        end={end}
+                        top={top}
+                        height={height}
+                        width={width}
+                        left={left}
+                        borderColor={borderColor}
+                        isSeen={isSeen}
+                        isCancelled={isCancelled}
+                        isClientCancelled={
+                          isClientCancelled
+                        }
+                        canDrag={!isCancelled}
+                        activeAppointment={
+                          activeAppointment
+                        }
+                        dragged={dragged}
+                        hoverY={hoverY}
+                        longPressTriggered={
+                          longPressTriggered
+                        }
+                        pressTimer={pressTimer}
+                        setLongPressTriggered={
+                          setLongPressTriggered
+                        }
+                        setAppointmentMenu={
+                          setAppointmentMenu
+                        }
+                        setPressTimer={setPressTimer}
+                        setHoverPosition={
+                          setHoverPosition
+                        }
+                        setActiveAppointment={
+                          setActiveAppointment
+                        }
+                        handleDragStart={(e, a) =>
+                          handleAppointmentDragStart(
+                            e,
+                            a,
+                            {
+                              setHoverY,
+                              setHoverDayIndex,
+                              setDragged,
+                            }
+                          )
+                        }
+                        setDragged={setDragged}
+                        handleDrop={handleDrop}
+                        day={weekDays[dayIndex]}
+                        weekDays={weekDays}
+                        snap={snap}
+                        PX_PER_MINUTE={
+                          PX_PER_MINUTE
+                        }
+                        setHoverY={setHoverY}
+                        setHoverDayIndex={
+                          setHoverDayIndex
+                        }
+                        setPreview={setPreview}
+                        handleAddNote={handleAddNote}
+                        deleteAppointment={
+                          deleteAppointment
+                        }
+                        reloadAppointments={
+                          reloadAppointments
+                        }
+                        token={token}
+                        t={t}
+                        lang={lang}
+                        acquireCalendarEventLock={
+                          acquireCalendarEventLock
+                        }
+                        releaseCalendarEventLock={
+                          releaseCalendarEventLock
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1659,6 +1784,7 @@ function App() {
       <AppointmentPreview
         activeAppointment={activeAppointment}
         hoverPosition={hoverPosition}
+        lang={lang}
       />
 
       {/* APPOINTMENT MENU */}

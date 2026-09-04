@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { t } from "../../translations";
 
 export default function AppointmentCard({
     a,
@@ -497,7 +498,7 @@ export default function AppointmentCard({
             }}
         >
             <div style={{ pointerEvents: "auto" }}>
-                <div
+                {/* <div
                     style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -557,6 +558,86 @@ export default function AppointmentCard({
                     >
                         📝
                     </span>
+                </div> */}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                    }}
+                >
+                    {/* ICONS */}
+                    <div
+                        style={{
+                            width: 18,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 2,
+                            flexShrink: 0,
+                        }}
+                    >
+                        <div style={{ fontSize: 11, lineHeight: 1 }}>
+                            {!isSeen && "🔔"}
+                            {isSeen &&
+                                !isClientCancelled &&
+                                "✅"}
+                            {isClientCancelled && "❌"}
+                        </div>
+
+                        <span
+                            style={{
+                                fontSize: 11,
+                                opacity: a.notes ? 1 : 0.35,
+                                cursor: "pointer",
+                                lineHeight: 1,
+                            }}
+                            title={
+                                a.notes
+                                    ? t("editNote", lang)
+                                    : t("addNote", lang)
+                            }
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddNote(a);
+                            }}
+                        >
+                            📝
+                        </span>
+                    </div>
+
+                    {/* APPOINTMENT INFO */}
+                    <div
+                        style={{
+                            marginLeft: 5,
+                            minWidth: 0,
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontWeight: 600,
+                                fontSize: 13,
+                            }}
+                        >
+                            {a.client?.name}
+
+                            {isCancelled && (
+                                <div
+                                    style={{
+                                        fontSize: 10,
+                                        color: "red",
+                                    }}
+                                >
+                                    {a.cancelReason === "Преместена"
+                                        ? `↪ ${t("moved", lang)}`
+                                        : t("cancelled", lang)}
+
+                                    {a.cancelReason &&
+                                        a.cancelReason !== "Преместена" &&
+                                        ` • ${a.cancelReason}`}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 

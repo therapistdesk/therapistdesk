@@ -86,7 +86,11 @@ export class SettingsService {
 
                         services: {
                             include: {
-                                service: true,
+                                service: {
+                                    include: {
+                                        category: true,
+                                    },
+                                },
                             },
                         },
                     },

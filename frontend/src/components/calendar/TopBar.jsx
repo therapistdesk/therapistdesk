@@ -1,16 +1,82 @@
+import { t } from "../../translations";
+
 export default function TopBar({
     therapist,
     moveMode,
-    clients,
-    selectedClient,
+    lang,
+    setLang,
     setMode,
 }) {
     return (
         <>
-            <h2>TherapistDesk</h2>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 8,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                    }}
+                >
+                    <img
+                        src="/Therapistdesk-logo.png"
+                        alt="TherapistDesk"
+                        style={{
+                            width: 180,
+                            height: "auto",
+                            display: "block",
+                        }}
+                    />
 
-            <div>
-                Добре дошъл, {therapist?.firstName} {therapist?.lastName}
+                    <div>
+                        {t("welcome", lang)}, {therapist?.firstName} {therapist?.lastName}
+                    </div>
+                </div>
+
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                    }}
+                >
+                    <button onClick={() => setMode("settings-home")}>
+                        ⚙️ Settings
+                    </button>
+
+                    <select
+                        value={lang}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setLang(value);
+                            localStorage.setItem("lang", value);
+                        }}
+                        style={{
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #ccc",
+                            cursor: "pointer",
+                        }}
+                    >
+                        <option value="bg">🇧🇬 BG</option>
+                        <option value="en">🇬🇧 EN</option>
+                    </select>
+
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem("token");
+                            window.location.reload();
+                        }}
+                    >
+                        Logout
+                    </button>
+                </div>
             </div>
 
             {moveMode && (
@@ -18,40 +84,11 @@ export default function TopBar({
                     style={{
                         background: "#fff3cd",
                         padding: 8,
-                        marginBottom: 10,
+                        marginBottom: 8,
                         border: "1px solid #ffeeba",
                     }}
                 >
                     Moving: {moveMode.client?.name}
-                </div>
-            )}
-
-            <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => setMode("settings-home")}>
-                    ⚙️ Settings
-                </button>
-
-                <button
-                    onClick={() => {
-                        localStorage.removeItem("token");
-                        window.location.reload();
-                    }}
-                >
-                    Logout
-                </button>
-            </div>
-
-            {selectedClient && (
-                <div
-                    style={{
-                        background: "#e3f2fd",
-                        padding: 10,
-                        marginBottom: 10,
-                        border: "1px solid #90caf9",
-                    }}
-                >
-                    Adding appointment for:{" "}
-                    {clients.find((c) => c.id === selectedClient)?.name}
                 </div>
             )}
         </>

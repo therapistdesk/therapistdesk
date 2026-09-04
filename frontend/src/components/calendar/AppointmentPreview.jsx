@@ -1,6 +1,9 @@
+import { t } from "../../translations";
+
 export default function AppointmentPreview({
     activeAppointment,
     hoverPosition,
+    lang,
 }) {
     if (!activeAppointment) return null;
 
@@ -59,7 +62,7 @@ export default function AppointmentPreview({
                         paddingTop: 5,
                     }}
                 >
-                    <strong>Причина за отмяна:</strong>{" "}
+                    <strong>{t("cancellationReason", lang)} </strong>
                     {activeAppointment.cancelReason}
                 </div>
             )}
